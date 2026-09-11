@@ -1,0 +1,11 @@
+bin/
+obj/
+artifacts/
+data/
+secrets/
+*.db
+*.db-shm
+*.db-wal
+*.user
+.vs/
+.idea/

@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="SolastaBot.Core/SolastaBot.Core.csproj" />
+  <Project Path="SolastaBot.Data/SolastaBot.Data.csproj" />
+  <Project Path="SolastaBot.Exchange/SolastaBot.Exchange.csproj" />
+  <Project Path="SolastaBot.Host/SolastaBot.Host.csproj" />
+  <Project Path="SolastaBot.Cli/SolastaBot.Cli.csproj" />
+  <Project Path="SolastaBot.Tests/SolastaBot.Tests.csproj" />
+</Solution>

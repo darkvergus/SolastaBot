@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Binance.Net" Version="13.5.1" />
+    <PackageReference Include="CryptoClients.Net" Version="5.7.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <ProjectReference Include="../SolastaBot.Core/SolastaBot.Core.csproj" />
+    <ProjectReference Include="../SolastaBot.Data/SolastaBot.Data.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>solasta</AssemblyName>
+    <RootNamespace>SolastaBot.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.12" />
+    <ProjectReference Include="../SolastaBot.Exchange/SolastaBot.Exchange.csproj" />
+  </ItemGroup>
+</Project>

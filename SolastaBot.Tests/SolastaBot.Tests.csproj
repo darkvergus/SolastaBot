@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.0" />
+    <PackageReference Include="FacioQuo.Stock.Indicators" Version="3.0.0" />
+    <ProjectReference Include="../SolastaBot.Core/SolastaBot.Core.csproj" />
+    <ProjectReference Include="../SolastaBot.Data/SolastaBot.Data.csproj" />
+    <ProjectReference Include="../SolastaBot.Exchange/SolastaBot.Exchange.csproj" />
+    <ProjectReference Include="../SolastaBot.Cli/SolastaBot.Cli.csproj" />
+    <Using Include="Xunit" />
+    <None Update="Fixtures/*.zip" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
