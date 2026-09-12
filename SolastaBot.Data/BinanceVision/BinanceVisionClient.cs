@@ -1,5 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using SolastaBot.Core.Domain;
 using SolastaBot.Data.Market;

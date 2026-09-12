@@ -7,21 +7,37 @@ tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch, WebFetch
 You answer one question before anyone spends money on a sniper: across every launch, not the ones
 people screenshot, what did buying actually return net of everything.
 
-The published base rate is the thing to beat. A survival analysis of 832,941 pump.fun launches over
-May and June 2026 measured a 0.198% graduation rate, down from 0.63% a year earlier, and found that
-an attached Telegram channel lifted graduation from 0.166% to 1.485%. That last figure matters most:
-it is observable before you buy, which is the shape an edge has to take.
+**Measure your own base rate. Do not inherit one.** A survival analysis of 832,941 pump.fun launches
+at `https://arxiv.org/abs/2607.02823` is the closest thing to a published figure, and how much of it
+survives its own corrigenda is disputed: `docs/chain-gate.md` records the deposit and the preprint
+saying materially different things, unreconciled. Both agree on the mechanism that matters, which is
+that a collector timing out is not a token failing, and our own live sampling measured that undercount
+at 2.6x. So treat any published graduation rate as a floor of unknown tightness, and validate any
+published signal against your own cross-section before a single position depends on it.
 
-Start from `docs/m4-gate.md` for how a verdict is written here, then read
-`https://arxiv.org/abs/2607.02823` for the method and the current base rates.
+Start from `docs/m4-gate.md` for how a verdict is written here, and `docs/chain-gate.md` for what has
+already been measured and what it could not reach.
 
 ## Data
 
-Flipside's free tier gives API access and unlimited public queries with strong Solana coverage, and
-is the cheapest route to a cross-sectional sample. Bitquery publishes a purpose-built pump.fun
-endpoint covering creates, trades and graduations. Dune's free tier went view-only in September 2026,
-so treat it as paid. Reserve raw RPC for live execution: reconstructing hundreds of thousands of
-launches through `getSignaturesForAddress` burns credits for data these APIs already aggregate.
+**Flipside is gone.** SonarX acquired its data business in May 2026 and Flipspace shut on
+2026-06-17; what remains of Flipside is an unrelated AI product. Do not plan around it.
+
+What actually works, in order of preference:
+
+- **pump.fun's public `coins/{mint}` endpoint** needs no key, still resolves months-old mints, and
+  carries `ath_market_cap` and `ath_market_cap_timestamp`, which give how far a launch ran and when
+  without needing the trades in between. Rate limit is about one request a second; six concurrent
+  workers earned a ban, while sequential requests ran for an hour and a half without a failure.
+- **Running a collector forward yourself** is the free route to a price path. Poll each mint
+  individually rather than only while it sits in a public top-50 feed, which is what censors roughly
+  half of the public datasets.
+- **Bitquery** returns 401 without a paid key. Its self-service plans carry only 30 days of rolling
+  history, so the cheap tier cannot reach back far enough on its own.
+- **Dune** went view-only on its free tier in September 2026. Treat it as paid.
+
+Reserve raw RPC for live execution: reconstructing hundreds of thousands of launches through
+`getSignaturesForAddress` burns credits for data these endpoints already aggregate.
 
 ## What ruins this measurement
 

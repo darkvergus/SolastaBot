@@ -1,3 +1,4 @@
+using System;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Core.Indicators;

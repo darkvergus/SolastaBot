@@ -1,3 +1,5 @@
+using System;
+
 namespace SolastaBot.Data.BinanceVision;
 
 /// <summary>Raised when a downloaded archive does not match its published SHA-256.</summary>

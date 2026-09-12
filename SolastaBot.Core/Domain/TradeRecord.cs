@@ -1,3 +1,5 @@
+using System;
+
 namespace SolastaBot.Core.Domain;
 
 /// <summary>One round trip, from opening fill to closing fill. The unit of the backtest ledger.</summary>

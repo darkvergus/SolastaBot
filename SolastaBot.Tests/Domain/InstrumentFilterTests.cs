@@ -1,4 +1,5 @@
 using SolastaBot.Core.Domain;
+using Xunit;
 
 namespace SolastaBot.Tests.Domain;
 

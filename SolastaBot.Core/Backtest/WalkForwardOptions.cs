@@ -1,3 +1,5 @@
+using System;
+
 namespace SolastaBot.Core.Backtest;
 
 public sealed record WalkForwardOptions

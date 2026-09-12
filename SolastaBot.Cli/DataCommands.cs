@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.CommandLine;
+using System.Linq;
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using SolastaBot.Core.Domain;
 using SolastaBot.Data;

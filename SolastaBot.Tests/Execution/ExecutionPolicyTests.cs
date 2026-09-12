@@ -1,6 +1,7 @@
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Execution;
 using SolastaBot.Core.Risk;
+using Xunit;
 
 namespace SolastaBot.Tests.Execution;
 

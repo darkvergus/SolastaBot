@@ -1,4 +1,6 @@
+using System;
 using System.CommandLine;
+using System.Threading.Tasks;
 
 namespace SolastaBot.Cli;
 

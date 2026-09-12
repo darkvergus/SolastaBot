@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SolastaBot.Core.Strategy;
 
 namespace SolastaBot.Tests.Support;

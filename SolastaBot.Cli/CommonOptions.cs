@@ -1,5 +1,8 @@
+using System;
 using System.CommandLine;
 using System.Globalization;
+using System.IO;
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using SolastaBot.Data.BinanceVision;
 using SolastaBot.Data.Market;

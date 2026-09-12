@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;

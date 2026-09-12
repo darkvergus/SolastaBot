@@ -1,7 +1,10 @@
+using System;
+using System.Collections.Generic;
 using FacioQuo.Stock.Indicators;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Indicators;
 using SolastaBot.Tests.Support;
+using Xunit;
 
 namespace SolastaBot.Tests.Indicators;
 

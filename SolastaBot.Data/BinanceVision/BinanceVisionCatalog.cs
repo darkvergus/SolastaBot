@@ -1,3 +1,4 @@
+using System;
 using SolastaBot.Data.Market;
 
 namespace SolastaBot.Data.BinanceVision;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Risk;
 using SolastaBot.Core.Strategy;
