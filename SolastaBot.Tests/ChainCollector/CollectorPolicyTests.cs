@@ -35,6 +35,17 @@ public sealed class CollectorPolicyTests
         Assert.Null(threshold);
     }
 
+    /// <summary>
+    /// The learned rule must land back on the pre-registered constant when it sees the curve that
+    /// constant was derived from. That agreement is the evidence the rule generalises rather than
+    /// fits, so this asserts it directly.
+    /// </summary>
+    /// <remarks>
+    /// To ten decimal places, not exactly. The ratio 31.04/30 does not terminate, so a decimal holds
+    /// it truncated and multiplying back by 30 lands a few 1e-27 away. The threshold is only ever
+    /// used as a comparison bound against a reserve balance, where that difference cannot change an
+    /// outcome, and demanding bit-exactness here would assert something the rule never claimed.
+    /// </remarks>
     [Fact]
     public void SolBaselineReproducesTheOriginalThreshold()
     {
@@ -46,7 +57,7 @@ public sealed class CollectorPolicyTests
 
         Assert.True(threshold.HasValue);
 
-        Assert.Equal(31.04m, threshold.Value);
+        Assert.Equal(31.04m, threshold.Value, 10);
     }
 
     [Fact]
