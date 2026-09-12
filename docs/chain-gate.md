@@ -24,6 +24,27 @@ nothing at all on the downside**, and an upper bound is not a return.
 
 The single cheapest thing that would settle this is in [What to provision](#what-to-provision).
 
+## The regime these numbers describe has already changed
+
+Everything above is measured on launches from May 2026. Four months later the market is not the same
+one, which matters because the filter below does not survive the move unaltered.
+
+| | May 2026 | September 2026 |
+| --- | --- | --- |
+| Launches per day | 25,800 | roughly 64,000 |
+| Quote asset | SOL | about half PUMP |
+| Bonding curve start | 30 units | near 1,035 units for PUMP |
+
+The `vSOL > 31.04` component is a "somebody already bought before you saw it" test, and it only reads
+that way against a curve starting at 30. Applied unchanged to a PUMP-quoted launch starting near
+1,035 it admits essentially everything and measures nothing. The generalisation is to learn the
+buy-in threshold per quote asset as a running median scaled by `31.04/30`, which on SOL converges
+back to 31.040 on its own. That it reproduces the pre-registered figure without being told to is the
+check that the rule is the right one rather than a fitted one.
+
+Read the peak and timing measurements as a description of the May regime, sound for what it was, and
+not as a live filter specification. `tools/chain-collector/` implements the generalised rule.
+
 ## Gate
 
 | Test | Bar | Measured | Verdict |
