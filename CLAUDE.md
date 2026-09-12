@@ -1,7 +1,24 @@
 # SolastaBot
 
-Perpetual futures research and trading, .NET 10 / C# 14. Read `README.md` for layout and commands,
-and `docs/m4-gate.md` for what has already been measured and rejected.
+Automated trading research, .NET 10 / C# 14. Read `README.md` for layout and commands, and
+`docs/m4-gate.md` for what has already been measured and rejected.
+
+## Two sleeves
+
+Capital runs in two independent sleeves, chosen because their payoffs are close to uncorrelated.
+
+- **Perp** trades Binance USD-M perpetual futures on a bar-driven strategy. Many roughly symmetric
+  bets, sized fixed-fractionally against a stop. This is what `SolastaBot.Core` models today.
+- **Chain** buys token launches on Solana. A lottery payoff: most positions go to zero and a small
+  tail pays for them, so sizing is many tiny bets rather than one stopped position. An
+  average-true-range stop is meaningless on a token minutes old.
+
+They share the discipline below and almost no code. Resist merging their domains: a `Candle` and a
+token launch are not the same object, and forcing one abstraction over both buys nothing.
+
+**Hard walls.** Each sleeve gets a fixed fraction of total capital and cannot reach into the other's
+allocation to fund a drawdown. A sleeve that has not passed its gate is allocated nothing, so the
+split is meaningful only once a sleeve has earned a share. The global kill switch stops both.
 
 ## Build and test
 
