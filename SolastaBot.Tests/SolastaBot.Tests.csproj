@@ -11,6 +11,7 @@
     <ProjectReference Include="../SolastaBot.Data/SolastaBot.Data.csproj" />
     <ProjectReference Include="../SolastaBot.Exchange/SolastaBot.Exchange.csproj" />
     <ProjectReference Include="../SolastaBot.Cli/SolastaBot.Cli.csproj" />
+    <ProjectReference Include="../SolastaBot.ChainCollector/SolastaBot.ChainCollector.csproj" />
     <Using Include="Xunit" />
     <None Update="Fixtures/*.zip" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

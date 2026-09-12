@@ -200,8 +200,8 @@ public sealed class TrendBandStrategyTests
         Candle[] cheap = CandleFactory.RandomWalk(600, seed: 44, start: 1_000m);
         Candle[] dear = CandleFactory.RandomWalk(600, seed: 44, start: 100_000m);
 
-        List<DecisionReason> fromCheap = Feed(new TrendBandStrategy(Fast), cheap).Select(decision => decision.Reason).ToList();
-        List<DecisionReason> fromDear = Feed(new TrendBandStrategy(Fast), dear).Select(decision => decision.Reason).ToList();
+        List<DecisionReason> fromCheap = [.. Feed(new TrendBandStrategy(Fast), cheap).Select(decision => decision.Reason)];
+        List<DecisionReason> fromDear = [.. Feed(new TrendBandStrategy(Fast), dear).Select(decision => decision.Reason)];
 
         Assert.Equal(fromCheap, fromDear);
     }
