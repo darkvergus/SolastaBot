@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using SolastaBot.Core.Strategy;
 
 namespace SolastaBot.Tests.Support;
@@ -21,6 +20,5 @@ public sealed class ScriptedStrategy(IReadOnlyList<StrategyDecision> script) : B
 
     protected override void OnReset() => position = 0;
 
-    protected override StrategyDecision OnCandle(in MarketSnapshot snapshot) =>
-        position < script.Count ? script[position++] : StrategyDecision.Flat(DecisionReason.Hold);
+    protected override StrategyDecision OnCandle(in MarketSnapshot snapshot) => position < script.Count ? script[position++] : StrategyDecision.Flat(DecisionReason.Hold);
 }

@@ -1,5 +1,3 @@
-using System;
-
 namespace SolastaBot.Core.Backtest;
 
 /// <summary>

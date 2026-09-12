@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Tests.Support;
@@ -60,7 +58,6 @@ public static class CandleFactory
         for (int index = 0; index < count; index++)
         {
             state = state * 6364136223846793005UL + 1442695040888963407UL;
-            // Top 20 bits give a stable value in [-1, 1) with no floating point involved.
             decimal unit = (state >> 44) / 524_288m - 1m;
             price *= 1m + unit * volatility;
             price = Math.Round(Math.Max(price, 1m), 2);

@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Risk;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Tests.Support;
-using Xunit;
 
 namespace SolastaBot.Tests.Backtest;
 
@@ -82,7 +79,7 @@ public sealed class BacktestEngineTests
 
         TradeRecord trade = Assert.Single(result.Trades);
         Assert.Equal(PositionSide.Long, trade.Side);
-        Assert.Equal(10m, trade.Quantity);          // 1% of 10,000 equity, over a stop 10 wide
+        Assert.Equal(10m, trade.Quantity);
         Assert.Equal(100m, trade.EntryPrice);
         Assert.Equal(120m, trade.ExitPrice);
         Assert.Equal(200m, trade.GrossPnl);
@@ -123,14 +120,14 @@ public sealed class BacktestEngineTests
         BacktestOptions options = new()
         {
             StartingBalance = 10_000m,
-            Fees = FeeSchedule.BinanceUsdFutures,   // 5 basis points taker
+            Fees = FeeSchedule.BinanceUsdFutures,
             Slippage = BasisPointSlippage.None
         };
 
         BacktestResult result = Run(WinningTrade(), LongThenFlat(), options);
 
         TradeRecord trade = Assert.Single(result.Trades);
-        Assert.Equal(1.1m, trade.Fees);             // 10 * 100 * 0.0005 plus 10 * 120 * 0.0005
+        Assert.Equal(1.1m, trade.Fees);
         Assert.Equal(200m, trade.GrossPnl);
         Assert.Equal(198.9m, trade.NetPnl);
         Assert.Equal(10_198.9m, result.Metrics.FinalEquity);
@@ -149,8 +146,8 @@ public sealed class BacktestEngineTests
         BacktestResult result = Run(WinningTrade(), LongThenFlat(), options);
 
         TradeRecord trade = Assert.Single(result.Trades);
-        Assert.Equal(100.1m, trade.EntryPrice);     // bought 10 basis points higher
-        Assert.Equal(119.88m, trade.ExitPrice);     // sold 10 basis points lower
+        Assert.Equal(100.1m, trade.EntryPrice);
+        Assert.Equal(119.88m, trade.ExitPrice);
         Assert.Equal(197.8m, trade.GrossPnl);
     }
 
@@ -166,7 +163,7 @@ public sealed class BacktestEngineTests
         BacktestResult result = Run(WinningTrade(), LongThenFlat(), funding: funding);
 
         TradeRecord trade = Assert.Single(result.Trades);
-        Assert.Equal(0.11m, trade.Funding);          // 10 units * 110 open * 0.01%
+        Assert.Equal(0.11m, trade.Funding);
         Assert.Equal(200m, trade.GrossPnl);
         Assert.Equal(199.89m, trade.NetPnl);
         Assert.Equal(0.11m, result.Metrics.TotalFunding);
@@ -176,7 +173,6 @@ public sealed class BacktestEngineTests
     [Fact]
     public void FundingOutsideThePositionsLifetimeIsNotCharged()
     {
-        // Hour zero precedes the entry fill, which happens at the open of hour one.
         FundingEvent[] funding = [new(CandleFactory.Origin, 0.01m)];
 
         BacktestResult result = Run(WinningTrade(), LongThenFlat(), funding: funding);
@@ -209,7 +205,7 @@ public sealed class BacktestEngineTests
         [
             Bar(0, 100m, 101m, 99m, 100m),
             Bar(1, 100m, 101m, 99m, 100m),
-            Bar(2, 100m, 101m, 89m, 95m),          // low of 89 reaches the stop at 90
+            Bar(2, 100m, 101m, 89m, 95m),
             Bar(3, 95m, 96m, 94m, 95m),
             Bar(4, 95m, 96m, 94m, 95m)
         ];
@@ -233,7 +229,7 @@ public sealed class BacktestEngineTests
         [
             Bar(0, 100m, 101m, 99m, 100m),
             Bar(1, 100m, 101m, 99m, 100m),
-            Bar(2, 85m, 86m, 84m, 85m),            // opened 5 below the stop
+            Bar(2, 85m, 86m, 84m, 85m),
             Bar(3, 85m, 86m, 84m, 85m),
             Bar(4, 85m, 86m, 84m, 85m)
         ];
@@ -287,7 +283,6 @@ public sealed class BacktestEngineTests
     [Fact]
     public void AnExistingPositionIsNeverResizedWhileItsDirectionIsUnchanged()
     {
-        // Every bar asks for a long, with a widening stop that would imply a different size each time.
         StrategyDecision[] script = [Long(10m), Long(5m), Long(2m), Long(1m), Long(20m)];
 
         BacktestResult result = Run(WinningTrade(), script);

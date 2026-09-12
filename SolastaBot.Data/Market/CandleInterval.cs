@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace SolastaBot.Data.Market;
 
 /// <summary>A bar size, paired with the exchange's code for it.</summary>

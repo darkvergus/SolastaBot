@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Risk;
 
@@ -78,7 +75,6 @@ public sealed class WalkForwardValidator
             
             if (chosen is null)
             {
-                // No candidate traded enough in training to be worth believing; sit this fold out.
                 trainFrom += walkForward.TestWindow;
                 index++;
                 continue;
@@ -174,7 +170,6 @@ public sealed class WalkForwardValidator
             return 0;
         }
 
-        // Approximated from the trades rather than tracked per bar, since folds are stitched together.
         TimeSpan held = trades.Aggregate(TimeSpan.Zero, (current, trade) => current + (trade.ClosedAt - trade.OpenedAt));
 
         TimeSpan span = curve[^1].Time - curve[0].Time;

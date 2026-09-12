@@ -1,4 +1,3 @@
-using System;
 using SolastaBot.Core.Strategy;
 
 namespace SolastaBot.Core.Backtest;

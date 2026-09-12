@@ -1,17 +1,14 @@
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Execution;
 using SolastaBot.Core.Risk;
-using Xunit;
 
 namespace SolastaBot.Tests.Execution;
 
 public sealed class ExecutionPolicyTests
 {
-    private static RiskVerdict Wants(PositionSide side, decimal quantity = 1m) =>
-        new(side, quantity, 90m, 50m, RiskOutcome.Approved, null);
+    private static RiskVerdict Wants(PositionSide side, decimal quantity = 1m) => new(side, quantity, 90m, 50m, RiskOutcome.Approved, null);
 
-    private static PositionState Open(PositionSide side) =>
-        new() { Side = side, Quantity = 1m, EntryPrice = 100m, StopPrice = 90m };
+    private static PositionState Open(PositionSide side) => new() { Side = side, Quantity = 1m, EntryPrice = 100m, StopPrice = 90m };
 
     [Fact]
     public void AFlatAccountOpensWhenTheGateApprovesADirection()
@@ -100,16 +97,12 @@ public sealed class ExecutionPolicyTests
         for (int cycle = 0; cycle < 5; cycle++)
         {
             policy.NotifyStopped(PositionSide.Long);
-
-            // The trend still reads long on the bar after the stop, so entry is refused.
+            
             Assert.Equal(PositionAction.None, policy.Plan(Wants(PositionSide.Long), PositionState.Flat).Action);
-
-            // The signal lapses, which is the only release a long-only strategy can ever offer.
+            
             policy.Plan(RiskVerdict.Flat(RiskOutcome.NoPosition), PositionState.Flat);
 
-            Assert.Equal(
-                PositionAction.Open,
-                policy.Plan(Wants(PositionSide.Long), PositionState.Flat).Action);
+            Assert.Equal(PositionAction.Open, policy.Plan(Wants(PositionSide.Long), PositionState.Flat).Action);
         }
     }
 

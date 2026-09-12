@@ -1,5 +1,3 @@
-using System;
-
 namespace SolastaBot.Core.Backtest;
 
 /// <summary>One mark-to-market sample, taken at every bar close.</summary>

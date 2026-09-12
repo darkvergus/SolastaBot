@@ -1,22 +1,13 @@
-using System;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Risk;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Tests.Support;
-using Xunit;
 
 namespace SolastaBot.Tests.Risk;
 
 public sealed class RiskGateTests
 {
-    private static Instrument Instrument { get; } = new(
-        Symbol: "TESTUSDT",
-        BaseAsset: "TEST",
-        QuoteAsset: "USDT",
-        TickSize: 0.1m,
-        StepSize: 0.001m,
-        MinQuantity: 0.001m,
-        MinNotional: 1m,
+    private static Instrument Instrument { get; } = new(Symbol: "TESTUSDT", BaseAsset: "TEST", QuoteAsset: "USDT", TickSize: 0.1m, StepSize: 0.001m, MinQuantity: 0.001m, MinNotional: 1m,
         MaxLeverage: 20);
 
     private static RiskOptions Defaults { get; } = new()
@@ -48,7 +39,6 @@ public sealed class RiskGateTests
 
         RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 0m), Ledger());
 
-        // 1% of 10,000 is 100 at risk; a stop 10 wide means ten units.
         Assert.Equal(RiskOutcome.Approved, verdict.Outcome);
         Assert.Equal(10m, verdict.Quantity);
         Assert.Equal(90m, verdict.StopPrice);
@@ -70,13 +60,12 @@ public sealed class RiskGateTests
     public void TheLeverageCapShrinksTheSizeAndSaysSo()
     {
         RiskGate gate = new(Defaults);
-        // A stop only 0.1 wide would ask for 1,000 units, which is 100,000 notional on 10,000 equity.
         StrategyDecision decision = new(PositionSide.Long, 0.1m, DecisionReason.EnterLong);
 
         RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 0m), Ledger());
 
         Assert.Equal(RiskOutcome.Reduced, verdict.Outcome);
-        Assert.Equal(300m, verdict.Quantity); // 10,000 equity * 3 leverage / 100 price
+        Assert.Equal(300m, verdict.Quantity);
     }
 
     [Fact]
@@ -87,7 +76,7 @@ public sealed class RiskGateTests
 
         RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 5_000m), Ledger());
 
-        Assert.Equal(15m, verdict.Quantity); // 1% of 15,000 equity over a stop 10 wide
+        Assert.Equal(15m, verdict.Quantity);
     }
 
     [Theory, InlineData(0), InlineData(-1)]
@@ -153,8 +142,7 @@ public sealed class RiskGateTests
     {
         RiskGate gate = new(Defaults);
         RiskLedger ledger = Ledger();
-
-        // Down 3% from the day's opening equity of 10,000.
+        
         RiskVerdict verdict = gate.Evaluate(new(PositionSide.Long, 10m, DecisionReason.EnterLong), Snapshot(), new(9_700m, 0m), ledger);
 
         Assert.Equal(RiskOutcome.Halted, verdict.Outcome);

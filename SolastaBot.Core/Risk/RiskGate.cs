@@ -1,4 +1,3 @@
-using System;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Strategy;
 

@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.CommandLine;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
@@ -64,8 +61,7 @@ internal static class WalkForwardCommand
 
         Command command = new("walk-forward", "Choose parameters on past data, measure them on the data that came next.");
 
-        foreach (Option option in new Option[]
-                 { symbol, interval, from, to, database, slippage, train, test, risk, leverage, balance, strategy, fixedParameters })
+        foreach (Option option in new Option[] { symbol, interval, from, to, database, slippage, train, test, risk, leverage, balance, strategy, fixedParameters })
         {
             command.Add(option);
         }
@@ -175,8 +171,7 @@ internal static class WalkForwardCommand
 
         foreach ((int fast, int slow) in speeds)
         {
-            grid.AddRange(from band in bands
-                let options = new TrendBandOptions
+            grid.AddRange(from band in bands let options = new TrendBandOptions
                 {
                     FastPeriod = fast,
                     SlowPeriod = slow,
@@ -215,8 +210,7 @@ internal static class WalkForwardCommand
 
                 foreach (decimal stop in stops)
                 {
-                    grid.AddRange(from floor in floors
-                        let options = new EmaCrossOptions
+                    grid.AddRange(from floor in floors let options = new EmaCrossOptions
                         {
                             FastPeriod = fast,
                             SlowPeriod = slow,

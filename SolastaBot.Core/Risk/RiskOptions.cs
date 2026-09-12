@@ -1,5 +1,3 @@
-using System;
-
 namespace SolastaBot.Core.Risk;
 
 public sealed record RiskOptions

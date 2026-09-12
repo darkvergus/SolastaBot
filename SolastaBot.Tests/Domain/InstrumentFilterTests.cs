@@ -1,5 +1,4 @@
 using SolastaBot.Core.Domain;
-using Xunit;
 
 namespace SolastaBot.Tests.Domain;
 
@@ -35,7 +34,6 @@ public sealed class InstrumentFilterTests
     [Fact]
     public void OrdersBelowTheMinimumNotionalAreRejected()
     {
-        // 0.001 BTC at 60,000 is 60 USDT, under the 100 USDT floor.
         FilterResult result = InstrumentFilter.Prepare(Btc, 0.001m, null, 60_000m);
         Assert.False(result.Accepted);
         Assert.Contains("Notional", result.Rejection);

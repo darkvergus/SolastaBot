@@ -1,5 +1,3 @@
-using System;
-
 namespace SolastaBot.Core.Strategy;
 
 /// <summary>Tunable parameters for <see cref="TrendBandStrategy"/>.</summary>

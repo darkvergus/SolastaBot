@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Execution;
 using SolastaBot.Core.Risk;

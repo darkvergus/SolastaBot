@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Tests.Support;
-using Xunit;
 
 namespace SolastaBot.Tests.Backtest;
 

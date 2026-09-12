@@ -1,4 +1,3 @@
-using System;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Indicators;
 
@@ -81,9 +80,7 @@ public sealed class TrendBandStrategy : BarSequencedStrategy
         decimal stopDistance = atr.Value * options.StopAtrMultiple;
         decimal separation = (fast.Value - slow.Value) / slow.Value;
         PositionSide held = snapshot.Position.Side;
-
-        // Exits are resolved before entries, so a bar that ends one side and would begin the other
-        // goes flat instead of reversing. The opposing entry must wait for a later bar.
+        
         if (held == PositionSide.Long)
         {
             return separation > 0m ? new(PositionSide.Long, stopDistance, DecisionReason.Hold) : StrategyDecision.Flat(DecisionReason.ExitOnCross);

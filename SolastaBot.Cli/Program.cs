@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace SolastaBot.Cli;
 
 public static class Program

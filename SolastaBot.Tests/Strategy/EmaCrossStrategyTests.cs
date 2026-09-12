@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Tests.Support;
-using Xunit;
 
 namespace SolastaBot.Tests.Strategy;
 
@@ -31,7 +28,6 @@ public sealed class EmaCrossStrategyTests
             StrategyDecision decision = strategy.Evaluate(new(Instrument, candle, position));
             decisions.Add(decision);
 
-            // Mimic the engine closely enough that hold and exit paths are exercised.
             position = decision.TargetSide == PositionSide.Flat ? PositionState.Flat : new()
                 {
                     Side = decision.TargetSide,

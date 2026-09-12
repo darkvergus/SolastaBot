@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Data.Integrity;
@@ -66,7 +64,6 @@ public static class SeriesIntegrity
             DateTime expected = previous + interval;
             if (current > expected)
             {
-                // Counted arithmetically so that a multi-year hole does not enumerate millions of slots.
                 long absent = (current - expected).Ticks / interval.Ticks;
                 missingCount += (int)Math.Min(absent, int.MaxValue);
 

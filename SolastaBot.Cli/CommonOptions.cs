@@ -1,8 +1,5 @@
-using System;
 using System.CommandLine;
 using System.Globalization;
-using System.IO;
-using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using SolastaBot.Data.BinanceVision;
 using SolastaBot.Data.Market;
@@ -57,8 +54,7 @@ internal static class CommonOptions
         throw new ArgumentException($"{optionName} must look like 2024-03, but was '{value}'.", nameof(value));
     }
 
-    internal static DateTime MonthStart(DateOnly month) =>
-        new(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+    internal static DateTime MonthStart(DateOnly month) => new(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
     internal static DateTime MonthEnd(DateOnly month) => MonthStart(month).AddMonths(1);
 

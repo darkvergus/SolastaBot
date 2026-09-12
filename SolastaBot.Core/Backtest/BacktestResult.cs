@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Core.Backtest;

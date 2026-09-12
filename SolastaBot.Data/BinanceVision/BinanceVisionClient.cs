@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Net.Http;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using SolastaBot.Core.Domain;
 using SolastaBot.Data.Market;
@@ -25,8 +19,7 @@ public sealed class BinanceVisionClient(HttpClient http, ILogger<BinanceVisionCl
     /// <summary>Returns the month's bars, or null when Binance publishes no archive for that month.</summary>
     public async Task<IReadOnlyList<Candle>?> GetMonthlyKlinesAsync(string symbol, CandleInterval interval, DateOnly month, CancellationToken cancellationToken)
     {
-        byte[]? archive = await DownloadVerifiedAsync(
-            BinanceVisionCatalog.MonthlyKlines(symbol, interval, month), cancellationToken);
+        byte[]? archive = await DownloadVerifiedAsync(BinanceVisionCatalog.MonthlyKlines(symbol, interval, month), cancellationToken);
 
         if (archive is null)
         {

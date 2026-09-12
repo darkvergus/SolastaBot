@@ -1,4 +1,3 @@
-using System;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Core.Indicators;
@@ -61,7 +60,6 @@ public sealed class AverageDirectionalIndex
         decimal upMove = candle.High - previousHigh;
         decimal downMove = previousLow - candle.Low;
 
-        // Only the larger move counts, and only when it is genuinely outward.
         decimal plus = upMove > downMove && upMove > 0m ? upMove : 0m;
         decimal minus = downMove > upMove && downMove > 0m ? downMove : 0m;
 

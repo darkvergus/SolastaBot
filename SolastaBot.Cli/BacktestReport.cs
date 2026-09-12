@@ -1,9 +1,5 @@
-using System;
 using System.Globalization;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
 using SolastaBot.Data.Integrity;
@@ -59,12 +55,10 @@ internal static class BacktestReport
             text.AppendLine();
             text.AppendLine(CultureInfo.InvariantCulture, $"  Costs consumed {Percent(costs / metrics.StartingBalance)} of the starting balance.");
         }
-
-        // Separating the two diagnoses matters: one is fixable by trading differently, the other is not.
-        if (metrics.TradeCount > 0 && metrics.TotalReturn < 0m)
+        
+        if (metrics is { TradeCount: > 0, TotalReturn: < 0m })
         {
-            text.AppendLine(metrics.GrossPnl <= 0m
-                ? "  The trades lost money before fees and funding, so trading less often will not rescue this."
+            text.AppendLine(metrics.GrossPnl <= 0m ? "  The trades lost money before fees and funding, so trading less often will not rescue this."
                 : "  The trades made money before fees and funding, so the cost of trading is what took it.");
         }
 

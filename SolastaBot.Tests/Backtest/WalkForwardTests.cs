@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Risk;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Tests.Support;
-using Xunit;
 
 namespace SolastaBot.Tests.Backtest;
 
@@ -131,7 +127,6 @@ public sealed class WalkForwardTests
     [Fact]
     public void ACandidateThatDoesNotTradeEnoughInTrainingIsNeverChosen()
     {
-        // A trend floor no reading can reach means this candidate never opens a position.
         StrategyCandidate silent = new("silent", () => new EmaCrossStrategy(new()
         {
             FastPeriod = 9,

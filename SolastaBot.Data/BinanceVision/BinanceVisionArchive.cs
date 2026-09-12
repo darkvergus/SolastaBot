@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Data.BinanceVision;
@@ -69,7 +65,6 @@ public static class BinanceVisionArchive
                 continue;
             }
 
-            // A header row starts with a letter; a data row starts with a digit.
             if (!char.IsAsciiDigit(line[0]))
             {
                 continue;
