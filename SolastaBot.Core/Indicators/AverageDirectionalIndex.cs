@@ -32,10 +32,10 @@ public sealed class AverageDirectionalIndex
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(period, 2);
         this.period = period;
-        trueRangeSmoother = new WilderSmoother(period);
-        plusSmoother = new WilderSmoother(period);
-        minusSmoother = new WilderSmoother(period);
-        indexSmoother = new WilderSmoother(period);
+        trueRangeSmoother = new(period);
+        plusSmoother = new(period);
+        minusSmoother = new(period);
+        indexSmoother = new(period);
     }
 
     public int Period => period;
@@ -78,9 +78,7 @@ public sealed class AverageDirectionalIndex
         MinusDirectional = 100m * minusSmoother.Value / trueRangeSmoother.Value;
 
         decimal total = PlusDirectional + MinusDirectional;
-        decimal directionalIndex = total == 0m
-            ? 0m
-            : 100m * Math.Abs(PlusDirectional - MinusDirectional) / total;
+        decimal directionalIndex = total == 0m ? 0m : 100m * Math.Abs(PlusDirectional - MinusDirectional) / total;
 
         indexSmoother.Add(directionalIndex);
     }

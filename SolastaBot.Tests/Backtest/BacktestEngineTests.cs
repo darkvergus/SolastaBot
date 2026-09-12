@@ -17,14 +17,7 @@ namespace SolastaBot.Tests.Backtest;
 /// </remarks>
 public sealed class BacktestEngineTests
 {
-    private static Instrument Instrument { get; } = new(
-        Symbol: "TESTUSDT",
-        BaseAsset: "TEST",
-        QuoteAsset: "USDT",
-        TickSize: 0.1m,
-        StepSize: 0.001m,
-        MinQuantity: 0.001m,
-        MinNotional: 1m,
+    private static Instrument Instrument { get; } = new(Symbol: "TESTUSDT", BaseAsset: "TEST", QuoteAsset: "USDT", TickSize: 0.1m, StepSize: 0.001m, MinQuantity: 0.001m, MinNotional: 1m,
         MaxLeverage: 20);
 
     /// <summary>Risk sized so the worked example comes out at exactly ten units.</summary>
@@ -38,28 +31,20 @@ public sealed class BacktestEngineTests
         MaintenanceMarginRate = 0.004m
     };
 
-    private static Candle Bar(int hour, decimal open, decimal high, decimal low, decimal close) =>
-        new(CandleFactory.Origin.AddHours(hour), open, high, low, close, 1m);
+    private static Candle Bar(int hour, decimal open, decimal high, decimal low, decimal close) => new(CandleFactory.Origin.AddHours(hour), open, high, low, close, 1m);
 
-    private static StrategyDecision Long(decimal stopDistance) =>
-        new(PositionSide.Long, stopDistance, DecisionReason.EnterLong);
+    private static StrategyDecision Long(decimal stopDistance) => new(PositionSide.Long, stopDistance, DecisionReason.EnterLong);
 
-    private static StrategyDecision Hold(decimal stopDistance) =>
-        new(PositionSide.Long, stopDistance, DecisionReason.Hold);
+    private static StrategyDecision Hold(decimal stopDistance) => new(PositionSide.Long, stopDistance, DecisionReason.Hold);
 
-    private static BacktestResult Run(
-        IReadOnlyList<Candle> candles,
-        IReadOnlyList<StrategyDecision> script,
-        BacktestOptions? options = null,
-        IReadOnlyList<FundingEvent>? funding = null,
-        RiskOptions? risk = null) =>
-        new BacktestEngine().Run(new BacktestRequest
+    private static BacktestResult Run(IReadOnlyList<Candle> candles, IReadOnlyList<StrategyDecision> script, BacktestOptions? options = null, IReadOnlyList<FundingEvent>? funding = null,
+        RiskOptions? risk = null) => new BacktestEngine().Run(new()
         {
             Instrument = Instrument,
             Candles = candles,
             Funding = funding ?? [],
             Strategy = new ScriptedStrategy(script),
-            Risk = new RiskGate(risk ?? Risk),
+            Risk = new(risk ?? Risk),
             Options = options ?? new BacktestOptions
             {
                 StartingBalance = 10_000m,

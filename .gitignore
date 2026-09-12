@@ -9,3 +9,4 @@ secrets/
 *.user
 .vs/
 .idea/
+*.log

@@ -1,7 +1,7 @@
 namespace SolastaBot.Core.Strategy;
 
-/// <summary>Tunable parameters for <see cref="EmaCrossStrategy"/>.</summary>
-public sealed record EmaCrossOptions
+/// <summary>Tunable parameters for <see cref="TrendBandStrategy"/>.</summary>
+public sealed record TrendBandOptions
 {
     public int FastPeriod { get; init; } = 21;
 
@@ -10,6 +10,18 @@ public sealed record EmaCrossOptions
     public int AtrPeriod { get; init; } = 14;
 
     public int TrendPeriod { get; init; } = 14;
+
+    /// <summary>
+    /// How far past the slow average, in basis points of it, the fast average must sit before a
+    /// position opens.
+    /// </summary>
+    /// <remarks>
+    /// Exits happen at the plain cross, so this width is also the dead zone the strategy sits flat
+    /// in. That asymmetry is the whole point of the parameter: a cross that barely happens closes
+    /// the position but does not open the opposite one, which is what stops a marginal wobble from
+    /// costing two taker fees.
+    /// </remarks>
+    public decimal EntryBandBasisPoints { get; init; } = 50m;
 
     /// <summary>ADX reading required before opening. Below this, price is ranging and a cross whipsaws.</summary>
     public decimal MinimumTrendStrength { get; init; } = 20m;
@@ -25,6 +37,8 @@ public sealed record EmaCrossOptions
         ArgumentOutOfRangeException.ThrowIfLessThan(SlowPeriod, 2);
         ArgumentOutOfRangeException.ThrowIfLessThan(AtrPeriod, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(TrendPeriod, 2);
+        ArgumentOutOfRangeException.ThrowIfNegative(EntryBandBasisPoints);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(EntryBandBasisPoints, 10_000m);
         ArgumentOutOfRangeException.ThrowIfNegative(MinimumTrendStrength);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(StopAtrMultiple, 0m);
 

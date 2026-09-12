@@ -62,8 +62,7 @@ public sealed class RiskLedger
 
     public void ReleaseKillSwitch() => KillSwitchEngaged = false;
 
-    public decimal DayLossFraction(decimal equity) =>
-        dayOpeningEquity <= 0m ? 0m : (dayOpeningEquity - equity) / dayOpeningEquity;
+    public decimal DayLossFraction(decimal equity) => dayOpeningEquity <= 0m ? 0m : (dayOpeningEquity - equity) / dayOpeningEquity;
 
     /// <summary>Returns why trading is halted, or null when it may continue.</summary>
     public string? HaltReason(decimal equity)
@@ -79,11 +78,6 @@ public sealed class RiskLedger
         }
 
         decimal loss = DayLossFraction(equity);
-        if (loss >= options.DailyLossLimitFraction)
-        {
-            return $"Daily loss {loss:P2} reached the limit of {options.DailyLossLimitFraction:P2}.";
-        }
-
-        return null;
+        return loss >= options.DailyLossLimitFraction ? $"Daily loss {loss:P2} reached the limit of {options.DailyLossLimitFraction:P2}." : null;
     }
 }

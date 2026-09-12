@@ -25,11 +25,7 @@ public sealed class RiskGate
 
     public RiskOptions Options => options;
 
-    public RiskVerdict Evaluate(
-        in StrategyDecision decision,
-        in MarketSnapshot snapshot,
-        in AccountState account,
-        RiskLedger ledger)
+    public RiskVerdict Evaluate(in StrategyDecision decision, in MarketSnapshot snapshot, in AccountState account, RiskLedger ledger)
     {
         ArgumentNullException.ThrowIfNull(ledger);
 
@@ -89,28 +85,17 @@ public sealed class RiskGate
             return RiskVerdict.Flat(RiskOutcome.Rejected, filtered.Rejection);
         }
 
-        decimal stopPrice = decision.TargetSide == PositionSide.Long
-            ? entryPrice - decision.StopDistance
-            : entryPrice + decision.StopDistance;
+        decimal stopPrice = decision.TargetSide == PositionSide.Long ? entryPrice - decision.StopDistance : entryPrice + decision.StopDistance;
 
         if (stopPrice <= 0m)
         {
             return RiskVerdict.Flat(RiskOutcome.Rejected, "Stop price falls at or below zero.");
         }
 
-        decimal liquidationPrice = LiquidationPrice(
-            decision.TargetSide, entryPrice, filtered.Quantity, account.Equity);
+        decimal liquidationPrice = LiquidationPrice(decision.TargetSide, entryPrice, filtered.Quantity, account.Equity);
 
-        return new RiskVerdict(
-            decision.TargetSide,
-            filtered.Quantity,
-            InstrumentFilter.RoundToTick(
-                stopPrice,
-                snapshot.Instrument.TickSize,
-                decision.TargetSide == PositionSide.Long ? PriceRounding.Down : PriceRounding.Up),
-            liquidationPrice,
-            reduced ? RiskOutcome.Reduced : RiskOutcome.Approved,
-            null);
+        return new(decision.TargetSide, filtered.Quantity, InstrumentFilter.RoundToTick(stopPrice, snapshot.Instrument.TickSize, decision.TargetSide == PositionSide.Long ? PriceRounding.Down : PriceRounding.Up),
+            liquidationPrice, reduced ? RiskOutcome.Reduced : RiskOutcome.Approved, null);
     }
 
     /// <summary>
@@ -126,7 +111,7 @@ public sealed class RiskGate
     private decimal LiquidationCappedQuantity(decimal equity, decimal entryPrice, decimal stopDistance)
     {
         decimal buffer = stopDistance * options.LiquidationBufferAtrMultiple;
-        decimal denominator = (entryPrice * options.MaintenanceMarginRate) + buffer;
+        decimal denominator = entryPrice * options.MaintenanceMarginRate + buffer;
         return denominator <= 0m ? 0m : equity / denominator;
     }
 
@@ -139,8 +124,6 @@ public sealed class RiskGate
 
         decimal maintenance = quantity * entryPrice * options.MaintenanceMarginRate;
         decimal distance = (equity - maintenance) / quantity;
-        return side == PositionSide.Long
-            ? Math.Max(0m, entryPrice - distance)
-            : entryPrice + distance;
+        return side == PositionSide.Long ? Math.Max(0m, entryPrice - distance) : entryPrice + distance;
     }
 }

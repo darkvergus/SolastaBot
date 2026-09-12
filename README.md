@@ -2,10 +2,15 @@
 
 Research and execution tooling for cryptocurrency perpetual futures, in .NET 10.
 
-**Status: stopped at the M4 gate.** The data pipeline, the backtester and the walk-forward validator
-are built, tested and verified against five years of real Binance data. The first strategy was
-measured and does not have an edge, so no exchange connector has been written and no API key exists.
-See [docs/m4-gate.md](docs/m4-gate.md) for the numbers.
+**Status: stopped at the strategy gate.** The data pipeline, the backtester and the walk-forward
+validator are built, tested and verified against five years of real Binance data. Two strategies
+have been measured against the gate and neither has an edge, so no exchange connector has been
+written and no API key exists.
+
+- [docs/m4-gate.md](docs/m4-gate.md) — an hourly EMA cross. Rejected: turnover ate a thin edge.
+- [docs/trend-band-gate.md](docs/trend-band-gate.md) — a four-hourly band entry that never reverses
+  directly. Rejected: it cut costs from 20% of the account to 5% and the holdout year still lost
+  money before fees and funding at every slippage assumption, so there was no edge to protect.
 
 ## Layout
 
@@ -38,10 +43,13 @@ dotnet run --project SolastaBot.Cli -c Release -- data pull --symbol BTCUSDT --i
 dotnet run --project SolastaBot.Cli -c Release -- data check --symbol BTCUSDT --interval 1h --from 2021-01 --to 2025-12
 
 # Single-pass backtest. Refuses to run over a series with gaps.
-dotnet run --project SolastaBot.Cli -c Release -- backtest --from 2021-01 --to 2025-12 --slippage harsh
+# --strategy takes trend-band (default) or ema-cross; both rejected strategies stay runnable so the
+# numbers in docs/ can be reproduced.
+dotnet run --project SolastaBot.Cli -c Release -- backtest --strategy trend-band --interval 4h --from 2021-01 --to 2025-12 --slippage harsh
 
 # Choose parameters on past data, measure them on the data that came next.
-dotnet run --project SolastaBot.Cli -c Release -- walk-forward --from 2021-01 --to 2025-12 --slippage medium
+# --fixed rolls one frozen parameter set through the folds instead of searching a grid.
+dotnet run --project SolastaBot.Cli -c Release -- walk-forward --strategy trend-band --interval 4h --from 2021-01 --to 2025-12 --slippage medium
 ```
 
 Downloaded data lands in `data/`, which is ignored by git.

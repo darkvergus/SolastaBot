@@ -6,9 +6,6 @@ using SolastaBot.Data.Market;
 
 namespace SolastaBot.Data.BinanceVision;
 
-/// <summary>Raised when a downloaded archive does not match its published SHA-256.</summary>
-public sealed class ArchiveIntegrityException(string message) : Exception(message);
-
 /// <summary>
 /// Downloads monthly history from Binance Vision, verifying every file against its published hash.
 /// </summary>
@@ -20,8 +17,7 @@ public sealed class ArchiveIntegrityException(string message) : Exception(messag
 public sealed class BinanceVisionClient(HttpClient http, ILogger<BinanceVisionClient> logger)
 {
     /// <summary>Returns the month's bars, or null when Binance publishes no archive for that month.</summary>
-    public async Task<IReadOnlyList<Candle>?> GetMonthlyKlinesAsync(
-        string symbol, CandleInterval interval, DateOnly month, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Candle>?> GetMonthlyKlinesAsync(string symbol, CandleInterval interval, DateOnly month, CancellationToken cancellationToken)
     {
         byte[]? archive = await DownloadVerifiedAsync(
             BinanceVisionCatalog.MonthlyKlines(symbol, interval, month), cancellationToken);
@@ -33,18 +29,14 @@ public sealed class BinanceVisionClient(HttpClient http, ILogger<BinanceVisionCl
 
         using MemoryStream stream = new(archive);
         IReadOnlyList<Candle> candles = BinanceVisionArchive.ReadKlines(stream);
-        logger.LogInformation(
-            "Read {Count} {Interval} bars for {Symbol} from {Month:yyyy-MM}.",
-            candles.Count, interval.Code, symbol, month);
+        logger.LogInformation("Read {Count} {Interval} bars for {Symbol} from {Month:yyyy-MM}.", candles.Count, interval.Code, symbol, month);
         return candles;
     }
 
     /// <summary>Returns the month's funding settlements, or null when no archive exists.</summary>
-    public async Task<IReadOnlyList<FundingEvent>?> GetMonthlyFundingAsync(
-        string symbol, DateOnly month, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<FundingEvent>?> GetMonthlyFundingAsync(string symbol, DateOnly month, CancellationToken cancellationToken)
     {
-        byte[]? archive = await DownloadVerifiedAsync(
-            BinanceVisionCatalog.MonthlyFundingRate(symbol, month), cancellationToken);
+        byte[]? archive = await DownloadVerifiedAsync(BinanceVisionCatalog.MonthlyFundingRate(symbol, month), cancellationToken);
 
         if (archive is null)
         {
@@ -53,9 +45,7 @@ public sealed class BinanceVisionClient(HttpClient http, ILogger<BinanceVisionCl
 
         using MemoryStream stream = new(archive);
         IReadOnlyList<FundingEvent> events = BinanceVisionArchive.ReadFundingRates(stream);
-        logger.LogInformation(
-            "Read {Count} funding settlements for {Symbol} from {Month:yyyy-MM}.",
-            events.Count, symbol, month);
+        logger.LogInformation("Read {Count} funding settlements for {Symbol} from {Month:yyyy-MM}.", events.Count, symbol, month);
         return events;
     }
 
@@ -75,13 +65,7 @@ public sealed class BinanceVisionClient(HttpClient http, ILogger<BinanceVisionCl
         string expected = await ReadChecksumAsync(BinanceVisionCatalog.Checksum(path), cancellationToken);
         string actual = Convert.ToHexString(SHA256.HashData(payload));
 
-        if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new ArchiveIntegrityException(
-                $"'{path}' hashes to {actual} but its published checksum is {expected}.");
-        }
-
-        return payload;
+        return !string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase) ? throw new ArchiveIntegrityException($"'{path}' hashes to {actual} but its published checksum is {expected}.") : payload;
     }
 
     /// <summary>The companion file holds one line, the hex digest followed by the file name.</summary>
@@ -90,8 +74,6 @@ public sealed class BinanceVisionClient(HttpClient http, ILogger<BinanceVisionCl
         string body = await http.GetStringAsync(path, cancellationToken);
         string[] parts = body.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        return parts.Length > 0
-            ? parts[0]
-            : throw new ArchiveIntegrityException($"The checksum file at '{path}' is empty.");
+        return parts.Length > 0 ? parts[0] : throw new ArchiveIntegrityException($"The checksum file at '{path}' is empty.");
     }
 }

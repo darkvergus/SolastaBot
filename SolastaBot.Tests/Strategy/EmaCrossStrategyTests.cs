@@ -25,13 +25,11 @@ public sealed class EmaCrossStrategyTests
 
         foreach (Candle candle in candles)
         {
-            StrategyDecision decision = strategy.Evaluate(new MarketSnapshot(Instrument, candle, position));
+            StrategyDecision decision = strategy.Evaluate(new(Instrument, candle, position));
             decisions.Add(decision);
 
             // Mimic the engine closely enough that hold and exit paths are exercised.
-            position = decision.TargetSide == PositionSide.Flat
-                ? PositionState.Flat
-                : new PositionState
+            position = decision.TargetSide == PositionSide.Flat ? PositionState.Flat : new()
                 {
                     Side = decision.TargetSide,
                     Quantity = 1m,
@@ -62,10 +60,9 @@ public sealed class EmaCrossStrategyTests
         EmaCrossStrategy strategy = new(Fast);
         Candle[] candles = CandleFactory.Trend(3, 100m, 1m);
 
-        strategy.Evaluate(new MarketSnapshot(Instrument, candles[2], PositionState.Flat));
+        strategy.Evaluate(new(Instrument, candles[2], PositionState.Flat));
 
-        Assert.Throws<InvalidOperationException>(
-            () => strategy.Evaluate(new MarketSnapshot(Instrument, candles[1], PositionState.Flat)));
+        Assert.Throws<InvalidOperationException>(() => strategy.Evaluate(new(Instrument, candles[1], PositionState.Flat)));
     }
 
     [Fact]
@@ -139,12 +136,9 @@ public sealed class EmaCrossStrategyTests
         Assert.Throws<ArgumentException>(() => new EmaCrossStrategy(Fast with { FastPeriod = 12, SlowPeriod = 12 }));
     }
 
-    [Theory]
-    [InlineData(0, 12)]
-    [InlineData(5, 1)]
+    [Theory,InlineData(0, 12),InlineData(5, 1)]
     public void NonsensicalPeriodsAreRejected(int fastPeriod, int slowPeriod)
     {
-        Assert.ThrowsAny<ArgumentException>(
-            () => new EmaCrossStrategy(Fast with { FastPeriod = fastPeriod, SlowPeriod = slowPeriod }));
+        Assert.ThrowsAny<ArgumentException>(() => new EmaCrossStrategy(Fast with { FastPeriod = fastPeriod, SlowPeriod = slowPeriod }));
     }
 }

@@ -33,7 +33,7 @@ public sealed class WalkForwardTests
     };
 
     private static StrategyCandidate Candidate(int fast, int slow, decimal stop) =>
-        new($"{fast}/{slow}/{stop}", () => new EmaCrossStrategy(new EmaCrossOptions
+        new($"{fast}/{slow}/{stop}", () => new EmaCrossStrategy(new()
         {
             FastPeriod = fast,
             SlowPeriod = slow,
@@ -43,13 +43,10 @@ public sealed class WalkForwardTests
             MinimumTrendStrength = 10m
         }));
 
-    private static IReadOnlyList<StrategyCandidate> Grid() =>
-        [Candidate(9, 26, 1.5m), Candidate(12, 55, 2.5m), Candidate(21, 55, 4m)];
+    private static IReadOnlyList<StrategyCandidate> Grid() => [Candidate(9, 26, 1.5m), Candidate(12, 55, 2.5m), Candidate(21, 55, 4m)];
 
-    private static WalkForwardReport Run(
-        IReadOnlyList<StrategyCandidate>? grid = null, WalkForwardOptions? windows = null) =>
-        new WalkForwardValidator().Run(
-            Instrument.BtcUsdtPerpetual, Series, [], grid ?? Grid(), Risk, Options, windows ?? Windows);
+    private static WalkForwardReport Run(IReadOnlyList<StrategyCandidate>? grid = null, WalkForwardOptions? windows = null) =>
+        new WalkForwardValidator().Run(Instrument.BtcUsdtPerpetual, Series, [], grid ?? Grid(), Risk, Options, windows ?? Windows);
 
     [Fact]
     public void FoldsAreProducedAndRollForwardByTheTestWindow()
@@ -112,9 +109,7 @@ public sealed class WalkForwardTests
     {
         WalkForwardReport report = Run();
 
-        Assert.Equal(
-            report.Folds.Count(fold => fold.Test.TotalReturn > 0m),
-            report.ProfitableFolds);
+        Assert.Equal(report.Folds.Count(fold => fold.Test.TotalReturn > 0m), report.ProfitableFolds);
         Assert.InRange(report.ParameterChanges, 0, Math.Max(0, report.Folds.Count - 1));
     }
 
@@ -133,16 +128,14 @@ public sealed class WalkForwardTests
     public void ACandidateThatDoesNotTradeEnoughInTrainingIsNeverChosen()
     {
         // A trend floor no reading can reach means this candidate never opens a position.
-        StrategyCandidate silent = new("silent", () => new EmaCrossStrategy(new EmaCrossOptions
+        StrategyCandidate silent = new("silent", () => new EmaCrossStrategy(new()
         {
             FastPeriod = 9,
             SlowPeriod = 26,
             MinimumTrendStrength = 10_000m
         }));
 
-        WalkForwardReport report = Run(
-            [silent, Candidate(9, 26, 1.5m)],
-            Windows with { MinimumTrainTrades = 3 });
+        WalkForwardReport report = Run([silent, Candidate(9, 26, 1.5m)], Windows with { MinimumTrainTrades = 3 });
 
         Assert.DoesNotContain(report.Folds, fold => fold.ChosenCandidate == "silent");
     }
@@ -150,7 +143,7 @@ public sealed class WalkForwardTests
     [Fact]
     public void AGridWhereNothingTradesEnoughProducesNoFolds()
     {
-        StrategyCandidate silent = new("silent", () => new EmaCrossStrategy(new EmaCrossOptions
+        StrategyCandidate silent = new("silent", () => new EmaCrossStrategy(new()
         {
             FastPeriod = 9,
             SlowPeriod = 26,
@@ -172,8 +165,7 @@ public sealed class WalkForwardTests
     [Fact]
     public void WindowsThatAreNotPositiveAreRejected()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => Run(windows: Windows with { TrainWindow = TimeSpan.Zero }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Run(windows: Windows with { TrainWindow = TimeSpan.Zero }));
     }
 
     /// <summary>

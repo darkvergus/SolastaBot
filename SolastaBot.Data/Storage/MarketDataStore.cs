@@ -62,11 +62,7 @@ public sealed class MarketDataStore(string databasePath)
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task<int> UpsertCandlesAsync(
-        string symbol,
-        CandleInterval interval,
-        IReadOnlyList<Candle> candles,
-        CancellationToken cancellationToken = default)
+    public async Task<int> UpsertCandlesAsync(string symbol, CandleInterval interval, IReadOnlyList<Candle> candles, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
         ArgumentNullException.ThrowIfNull(interval);
@@ -78,8 +74,7 @@ public sealed class MarketDataStore(string databasePath)
         }
 
         await using SqliteConnection connection = await OpenAsync(cancellationToken);
-        await using SqliteTransaction transaction = (SqliteTransaction)
-            await connection.BeginTransactionAsync(cancellationToken);
+        await using SqliteTransaction transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
         await using SqliteCommand command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
@@ -116,10 +111,7 @@ public sealed class MarketDataStore(string databasePath)
         return candles.Count;
     }
 
-    public async Task<int> UpsertFundingAsync(
-        string symbol,
-        IReadOnlyList<FundingEvent> events,
-        CancellationToken cancellationToken = default)
+    public async Task<int> UpsertFundingAsync(string symbol, IReadOnlyList<FundingEvent> events, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
         ArgumentNullException.ThrowIfNull(events);
@@ -130,8 +122,7 @@ public sealed class MarketDataStore(string databasePath)
         }
 
         await using SqliteConnection connection = await OpenAsync(cancellationToken);
-        await using SqliteTransaction transaction = (SqliteTransaction)
-            await connection.BeginTransactionAsync(cancellationToken);
+        await using SqliteTransaction transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
         await using SqliteCommand command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
@@ -154,12 +145,7 @@ public sealed class MarketDataStore(string databasePath)
         return events.Count;
     }
 
-    public async Task<IReadOnlyList<Candle>> ReadCandlesAsync(
-        string symbol,
-        CandleInterval interval,
-        DateTime from,
-        DateTime to,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Candle>> ReadCandlesAsync(string symbol, CandleInterval interval, DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
         await using SqliteConnection connection = await OpenAsync(cancellationToken);
         await using SqliteCommand command = connection.CreateCommand();
@@ -177,23 +163,14 @@ public sealed class MarketDataStore(string databasePath)
         await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            candles.Add(new Candle(
-                OpenTime: FromUnixMilliseconds(reader.GetInt64(0)),
-                Open: Number(reader.GetString(1)),
-                High: Number(reader.GetString(2)),
-                Low: Number(reader.GetString(3)),
-                Close: Number(reader.GetString(4)),
-                Volume: Number(reader.GetString(5))));
+            candles.Add(new(OpenTime: FromUnixMilliseconds(reader.GetInt64(0)), Open: Number(reader.GetString(1)), High: Number(reader.GetString(2)),
+                Low: Number(reader.GetString(3)), Close: Number(reader.GetString(4)), Volume: Number(reader.GetString(5))));
         }
 
         return candles;
     }
 
-    public async Task<IReadOnlyList<FundingEvent>> ReadFundingAsync(
-        string symbol,
-        DateTime from,
-        DateTime to,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<FundingEvent>> ReadFundingAsync(string symbol, DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
         await using SqliteConnection connection = await OpenAsync(cancellationToken);
         await using SqliteCommand command = connection.CreateCommand();
@@ -210,16 +187,14 @@ public sealed class MarketDataStore(string databasePath)
         await using SqliteDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            events.Add(new FundingEvent(FromUnixMilliseconds(reader.GetInt64(0)), Number(reader.GetString(1))));
+            events.Add(new(FromUnixMilliseconds(reader.GetInt64(0)), Number(reader.GetString(1))));
         }
 
         return events;
     }
 
     /// <summary>Bars already held for a symbol and interval, so a pull can skip months it has.</summary>
-    public async Task<int> CountCandlesAsync(
-        string symbol, CandleInterval interval, DateTime from, DateTime to,
-        CancellationToken cancellationToken = default)
+    public async Task<int> CountCandlesAsync(string symbol, CandleInterval interval, DateTime from, DateTime to, CancellationToken cancellationToken = default)
     {
         await using SqliteConnection connection = await OpenAsync(cancellationToken);
         await using SqliteCommand command = connection.CreateCommand();
@@ -242,11 +217,9 @@ public sealed class MarketDataStore(string databasePath)
         return connection;
     }
 
-    private static long ToUnixMilliseconds(DateTime value) =>
-        new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
+    private static long ToUnixMilliseconds(DateTime value) => new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
 
-    private static DateTime FromUnixMilliseconds(long value) =>
-        DateTimeOffset.FromUnixTimeMilliseconds(value).UtcDateTime;
+    private static DateTime FromUnixMilliseconds(long value) => DateTimeOffset.FromUnixTimeMilliseconds(value).UtcDateTime;
 
     private static string Text(decimal value) => value.ToString(CultureInfo.InvariantCulture);
 

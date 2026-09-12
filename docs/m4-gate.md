@@ -1,8 +1,12 @@
 # M4 gate: the EMA cross strategy does not survive validation
 
-Measured 2026-09-11 against BTCUSDT perpetual, hourly bars, 2021-01-01 to 2025-12-31.
-43,824 bars and 5,388 funding settlements, downloaded from Binance Vision and verified to contain no
-gaps, no duplicates and no malformed bars.
+Measured against BTCUSDT perpetual, hourly bars, 2021-01-01 to 2025-12-31. 43,824 bars and 5,478
+funding settlements, downloaded from Binance Vision and verified to contain no gaps, no duplicates
+and no malformed bars.
+
+Figures re-measured 2026-09-12 after a latching defect was fixed in `ExecutionPolicy`. The
+re-entry block used to release only on the opposite direction, which held it longer than intended
+and suppressed roughly a hundred trades. See the correction at the end. The verdict is unchanged.
 
 ## Verdict
 
@@ -12,12 +16,24 @@ gaps, no duplicates and no malformed bars.
 
 | Slippage | Final equity | Return | Max drawdown | Sharpe | Profit factor |
 | --- | --- | --- | --- | --- | --- |
-| none | 11,602.50 | +16.02% | 22.13% | 0.29 | 1.06 |
-| medium | 9,531.00 | -4.69% | 27.85% | 0.00 | 0.98 |
-| harsh | 6,340.80 | -36.59% | 44.00% | -0.60 | 0.85 |
+| none | 12,002.60 | +20.03% | 23.51% | 0.33 | 1.07 |
+| medium | 9,540.03 | -4.60% | 27.05% | 0.00 | 0.98 |
+| harsh | 5,898.24 | -41.02% | 47.04% | -0.67 | 0.84 |
 
-692 trades, win rate 22%, 79% of the time in the market. At medium slippage the run pays 2,269 in
-fees and 471 in funding on a 10,000 account. The gross edge exists; execution costs consume all of it.
+790 trades, win rate 22.66%, 88% of the time in the market. At medium slippage the run pays 2,557 in
+fees and 518 in funding on a 10,000 account, which is 30.75% of the starting balance.
+
+The trades make money before fees and funding at every profile but the harshest.
+
+| Slippage | Before fees and funding |
+| --- | --- |
+| none | +5,432.94 |
+| medium | +2,611.40 |
+| harsh | -1,628.55 |
+
+So this strategy has a thin edge that execution cost consumes, rather than no edge at all. That
+distinction matters, and it is the one the successor strategy was built to exploit. It did not
+survive either, for a different reason: see `trend-band-gate.md`.
 
 ## Walk-forward, 180-day training and 60-day test windows
 
@@ -26,21 +42,27 @@ that followed.
 
 | Measure | Value |
 | --- | --- |
-| Out-of-sample equity | 10,000 to 6,111 |
-| Out-of-sample return | -38.89% |
-| Max drawdown | 44.17% |
-| Profitable folds | 9 of 27 |
-| Parameter changes | 20 of 26 rolls |
-| Fees and funding | 2,088 |
+| Out-of-sample equity | 10,000 to 7,522 |
+| Out-of-sample return | -24.78% |
+| Max drawdown | 33.75% |
+| Trades | 797 |
+| Profitable folds | 11 of 27 |
+| Parameter changes | 23 of 26 rolls |
+| Fees and funding | 2,564 |
 
 Training windows returned well over +10% on average. The windows that followed them averaged
 slightly negative. That gap is the overfitting, measured rather than argued.
 
 The parameter instability is the clearest signal: the training window chose different parameters on
-20 of 26 rolls. A real edge keeps selecting roughly the same settings as the window advances. One
+23 of 26 rolls. A real edge keeps selecting roughly the same settings as the window advances. One
 selected in and immediately out is fitting noise.
 
-## The bug this exercise found
+## The bugs this exercise found
+
+Three, and all three shared a shape: the run completed, the numbers looked plausible, and nothing
+failed.
+
+### A halt that could not be lifted
 
 The first five-year run reported +5.80% at medium slippage and 40 trades. All 40 trades fell in the
 first four months.
@@ -59,15 +81,40 @@ the two, because the failure looks like a flat equity curve rather than an error
 The lesson generalises. A risk control that can latch permanently produces results that look like a
 cautious strategy rather than a broken one.
 
+### A second latch, in the same codebase, after the lesson was written down
+
+Found on 2026-09-12 while measuring the successor strategy. `ExecutionPolicy` refuses the direction
+it was just stopped out of, and released that block only when the opposite direction was wanted.
+A long-only configuration never wants the opposite direction, so under the supported `--long-only`
+flag the block was taken once and held forever, and a single stop-out ended the run silently.
+
+This was written after the halt above had been diagnosed, documented, and turned into a rule in
+`CLAUDE.md`. Knowing the failure mode was not enough to avoid repeating it, which is the argument
+for the reviewer checking every piece of retained state for a release path rather than relying on
+whoever writes the next one to remember.
+
+The block now releases on any target other than the blocked side. That is a behaviour change, so
+every figure above was re-measured under the fixed code; the old numbers were 692 trades and -38.89%
+out of sample. Two tests cover it, one of which drives the policy the way a long-only strategy does.
+
+### Metrics that lied about what they summed
+
+`BacktestMetrics` reported fields named `GrossProfit` and `GrossLoss` that summed `NetPnl`, so both
+were net of fees and funding while claiming to be gross. This mattered precisely when asking whether
+costs caused a loss, which is the question that decided the successor strategy.
+
+They are now `NetProfit` and `NetLoss`, and a new `GrossPnl` field sums the pre-fee figure so the
+question has a first-class answer. It is gross of fees and funding but net of slippage, since
+slippage is applied to the fill price, and the report and doc comment both say so.
+
 ## What would be worth trying next
 
 In rough order of expected value.
 
-1. **Trade a slower timeframe.** 692 trades in five years on hourly bars pays taker fees twice per
-   reversal. The same logic on 4-hour or daily bars would cut turnover several-fold, and fees are
-   currently the single largest cost.
-2. **Stop reversing directly.** Every cross closes and reopens in one bar, paying two taker fees.
-   Going flat and requiring a fresh entry condition would drop a large share of the trade count.
+1. ~~**Trade a slower timeframe.**~~ Done. Four-hourly bars cut fees from 1,437 to 185 and turned
+   the in-sample result positive. It was not enough; see `trend-band-gate.md`.
+2. ~~**Stop reversing directly.**~~ Done, in the same successor. Worth about three points and better
+   risk-adjusted columns, so it earned its place, but it was not the missing piece either.
 3. **Use funding as a signal, not just a cost.** The data is already downloaded. Extreme positive
    funding marks crowded longs, which is information, not merely a bill.
 4. **Post-only entries.** Maker rebates instead of taker fees change the cost structure entirely,

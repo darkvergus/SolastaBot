@@ -14,9 +14,15 @@ namespace SolastaBot.Core.Execution;
 /// <para>
 /// Two policies are encoded. First, an existing position is never resized: the strategy's target is
 /// a direction, and re-sizing on every bar would pay taker fees continuously for no signal. Second,
-/// after a stop-out the same direction is refused until the trend has actually flipped the other way
-/// and come back. Without that, a stop inside a range re-opens on the very next bar and the strategy
-/// pays fees to be stopped out repeatedly by the same chop.
+/// after a stop-out the same direction is refused until the signal for it lapses and returns. Without
+/// that, a stop inside a range re-opens on the very next bar and the strategy pays fees to be stopped
+/// out repeatedly by the same chop.
+/// </para>
+/// <para>
+/// The block releases on any target other than the blocked one, rather than on the opposite direction
+/// specifically. Requiring the opposite is a latch: a long-only strategy never asks to go short, so a
+/// block taken once would never lift and one stop-out would silently end the run. Any state this class
+/// holds needs a release path reachable from every configuration, not only the ones we had in mind.
 /// </para>
 /// </remarks>
 public sealed class ExecutionPolicy
@@ -39,13 +45,13 @@ public sealed class ExecutionPolicy
 
         if (blockedSide != PositionSide.Flat)
         {
-            if (target == Opposite(blockedSide))
-            {
-                blockedSide = PositionSide.Flat;
-            }
-            else if (target == blockedSide)
+            if (target == blockedSide)
             {
                 target = PositionSide.Flat;
+            }
+            else
+            {
+                blockedSide = PositionSide.Flat;
             }
         }
 
@@ -56,9 +62,7 @@ public sealed class ExecutionPolicy
                 return PositionPlan.None;
             }
 
-            return new PositionPlan(
-                PositionAction.Open, target, verdict.Quantity,
-                verdict.StopPrice, verdict.LiquidationPrice, ExitReason.None);
+            return new(PositionAction.Open, target, verdict.Quantity, verdict.StopPrice, verdict.LiquidationPrice, ExitReason.None);
         }
 
         if (target == position.Side)
@@ -70,18 +74,9 @@ public sealed class ExecutionPolicy
 
         if (target == PositionSide.Flat || verdict.Quantity <= 0m)
         {
-            return new PositionPlan(PositionAction.Close, PositionSide.Flat, 0m, 0m, 0m, reason);
+            return new(PositionAction.Close, PositionSide.Flat, 0m, 0m, 0m, reason);
         }
 
-        return new PositionPlan(
-            PositionAction.Reverse, target, verdict.Quantity,
-            verdict.StopPrice, verdict.LiquidationPrice, reason);
+        return new(PositionAction.Reverse, target, verdict.Quantity, verdict.StopPrice, verdict.LiquidationPrice, reason);
     }
-
-    private static PositionSide Opposite(PositionSide side) => side switch
-    {
-        PositionSide.Long => PositionSide.Short,
-        PositionSide.Short => PositionSide.Long,
-        _ => PositionSide.Flat
-    };
 }

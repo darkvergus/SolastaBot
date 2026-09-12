@@ -27,13 +27,14 @@ public sealed class RiskGateTests
         MaintenanceMarginRate = 0.004m
     };
 
-    private static MarketSnapshot Snapshot(decimal close = 100m, PositionState? position = null) =>
-        new(Instrument, new Candle(CandleFactory.Origin, close, close, close, close, 1m), position ?? PositionState.Flat);
+    private static MarketSnapshot Snapshot(decimal close = 100m, PositionState? position = null) => new(Instrument, new(CandleFactory.Origin, close, close, close,
+        close, 1m), position ?? PositionState.Flat);
 
     private static RiskLedger Ledger(RiskOptions? options = null, decimal equity = 10_000m)
     {
         RiskLedger ledger = new(options ?? Defaults);
         ledger.Observe(CandleFactory.Origin, equity);
+
         return ledger;
     }
 
@@ -43,7 +44,7 @@ public sealed class RiskGateTests
         RiskGate gate = new(Defaults);
         StrategyDecision decision = new(PositionSide.Long, 10m, DecisionReason.EnterLong);
 
-        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new AccountState(10_000m, 0m), Ledger());
+        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 0m), Ledger());
 
         // 1% of 10,000 is 100 at risk; a stop 10 wide means ten units.
         Assert.Equal(RiskOutcome.Approved, verdict.Outcome);
@@ -57,7 +58,7 @@ public sealed class RiskGateTests
         RiskGate gate = new(Defaults);
         StrategyDecision decision = new(PositionSide.Short, 10m, DecisionReason.EnterShort);
 
-        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new AccountState(10_000m, 0m), Ledger());
+        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 0m), Ledger());
 
         Assert.Equal(PositionSide.Short, verdict.TargetSide);
         Assert.Equal(110m, verdict.StopPrice);
@@ -70,10 +71,10 @@ public sealed class RiskGateTests
         // A stop only 0.1 wide would ask for 1,000 units, which is 100,000 notional on 10,000 equity.
         StrategyDecision decision = new(PositionSide.Long, 0.1m, DecisionReason.EnterLong);
 
-        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new AccountState(10_000m, 0m), Ledger());
+        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 0m), Ledger());
 
         Assert.Equal(RiskOutcome.Reduced, verdict.Outcome);
-        Assert.Equal(300m, verdict.Quantity);       // 10,000 equity * 3 leverage / 100 price
+        Assert.Equal(300m, verdict.Quantity); // 10,000 equity * 3 leverage / 100 price
     }
 
     [Fact]
@@ -82,20 +83,18 @@ public sealed class RiskGateTests
         RiskGate gate = new(Defaults);
         StrategyDecision decision = new(PositionSide.Long, 10m, DecisionReason.EnterLong);
 
-        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new AccountState(10_000m, 5_000m), Ledger());
+        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 5_000m), Ledger());
 
-        Assert.Equal(15m, verdict.Quantity);        // 1% of 15,000 equity over a stop 10 wide
+        Assert.Equal(15m, verdict.Quantity); // 1% of 15,000 equity over a stop 10 wide
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
+    [Theory, InlineData(0), InlineData(-1)]
     public void ANonPositiveStopDistanceIsRefused(int stopDistance)
     {
         RiskGate gate = new(Defaults);
         StrategyDecision decision = new(PositionSide.Long, stopDistance, DecisionReason.EnterLong);
 
-        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new AccountState(10_000m, 0m), Ledger());
+        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10_000m, 0m), Ledger());
 
         Assert.Equal(RiskOutcome.Rejected, verdict.Outcome);
         Assert.Equal(0m, verdict.Quantity);
@@ -107,7 +106,7 @@ public sealed class RiskGateTests
         RiskGate gate = new(Defaults);
         StrategyDecision decision = new(PositionSide.Long, 10m, DecisionReason.EnterLong);
 
-        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new AccountState(0m, 0m), Ledger(equity: 0m));
+        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(0m, 0m), Ledger(equity: 0m));
 
         Assert.Equal(RiskOutcome.Rejected, verdict.Outcome);
     }
@@ -118,7 +117,7 @@ public sealed class RiskGateTests
         RiskGate gate = new(Defaults with { RiskFractionPerTrade = 0.0001m });
         StrategyDecision decision = new(PositionSide.Long, 1_000m, DecisionReason.EnterLong);
 
-        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new AccountState(10m, 0m), Ledger(equity: 10m));
+        RiskVerdict verdict = gate.Evaluate(decision, Snapshot(), new(10m, 0m), Ledger(equity: 10m));
 
         Assert.Equal(RiskOutcome.Rejected, verdict.Outcome);
         Assert.NotNull(verdict.Detail);
@@ -129,8 +128,7 @@ public sealed class RiskGateTests
     {
         RiskGate gate = new(Defaults);
 
-        RiskVerdict verdict = gate.Evaluate(
-            StrategyDecision.Flat(DecisionReason.Warmup), Snapshot(), new AccountState(10_000m, 0m), Ledger());
+        RiskVerdict verdict = gate.Evaluate(StrategyDecision.Flat(DecisionReason.Warmup), Snapshot(), new(10_000m, 0m), Ledger());
 
         Assert.Equal(RiskOutcome.NoPosition, verdict.Outcome);
     }
@@ -142,9 +140,7 @@ public sealed class RiskGateTests
         RiskLedger ledger = Ledger();
         ledger.EngageKillSwitch();
 
-        RiskVerdict verdict = gate.Evaluate(
-            new StrategyDecision(PositionSide.Long, 10m, DecisionReason.EnterLong),
-            Snapshot(), new AccountState(10_000m, 0m), ledger);
+        RiskVerdict verdict = gate.Evaluate(new(PositionSide.Long, 10m, DecisionReason.EnterLong), Snapshot(), new(10_000m, 0m), ledger);
 
         Assert.Equal(RiskOutcome.Halted, verdict.Outcome);
         Assert.Contains("Kill switch", verdict.Detail);
@@ -157,9 +153,7 @@ public sealed class RiskGateTests
         RiskLedger ledger = Ledger();
 
         // Down 3% from the day's opening equity of 10,000.
-        RiskVerdict verdict = gate.Evaluate(
-            new StrategyDecision(PositionSide.Long, 10m, DecisionReason.EnterLong),
-            Snapshot(), new AccountState(9_700m, 0m), ledger);
+        RiskVerdict verdict = gate.Evaluate(new(PositionSide.Long, 10m, DecisionReason.EnterLong), Snapshot(), new(9_700m, 0m), ledger);
 
         Assert.Equal(RiskOutcome.Halted, verdict.Outcome);
         Assert.Contains("Daily loss", verdict.Detail);
@@ -175,11 +169,8 @@ public sealed class RiskGateTests
         ledger.Observe(CandleFactory.Origin.AddDays(1), 9_700m);
 
         Assert.Null(ledger.HaltReason(9_700m));
-        Assert.Equal(
-            RiskOutcome.Approved,
-            gate.Evaluate(
-                new StrategyDecision(PositionSide.Long, 10m, DecisionReason.EnterLong),
-                Snapshot(), new AccountState(9_700m, 0m), ledger).Outcome);
+
+        Assert.Equal(RiskOutcome.Approved, gate.Evaluate(new(PositionSide.Long, 10m, DecisionReason.EnterLong), Snapshot(), new(9_700m, 0m), ledger).Outcome);
     }
 
     [Fact]
@@ -193,9 +184,7 @@ public sealed class RiskGateTests
             ledger.RecordTrade(Loss());
         }
 
-        RiskVerdict verdict = gate.Evaluate(
-            new StrategyDecision(PositionSide.Long, 10m, DecisionReason.EnterLong),
-            Snapshot(), new AccountState(10_000m, 0m), ledger);
+        RiskVerdict verdict = gate.Evaluate(new(PositionSide.Long, 10m, DecisionReason.EnterLong), Snapshot(), new(10_000m, 0m), ledger);
 
         Assert.Equal(RiskOutcome.Halted, verdict.Outcome);
         Assert.Contains("consecutive losses", verdict.Detail);
@@ -210,6 +199,7 @@ public sealed class RiskGateTests
     public void AConsecutiveLossHaltIsLiftedByTheNextUtcDayNotOnlyByAWin()
     {
         RiskLedger ledger = Ledger();
+
         for (int index = 0; index < 4; index++)
         {
             ledger.RecordTrade(Loss());
@@ -278,9 +268,9 @@ public sealed class RiskGateTests
                             foreach (PositionSide side in sides)
                             {
                                 RiskVerdict verdict = gate.Evaluate(
-                                    new StrategyDecision(side, stop, DecisionReason.EnterLong),
+                                    new(side, stop, DecisionReason.EnterLong),
                                     Snapshot(price),
-                                    new AccountState(equity, 0m),
+                                    new(equity, 0m),
                                     Ledger(equity: equity));
 
                                 if (!verdict.WantsPosition)
@@ -290,14 +280,11 @@ public sealed class RiskGateTests
 
                                 approved++;
                                 decimal stopTravel = Math.Abs(price - verdict.StopPrice);
-                                decimal liquidationTravel = verdict.LiquidationPrice <= 0m
-                                    ? decimal.MaxValue
-                                    : Math.Abs(price - verdict.LiquidationPrice);
 
-                                Assert.True(
-                                    liquidationTravel > stopTravel,
-                                    $"At {fraction:P1} risk, {leverage}x cap, stop {stop} and price {price}, "
-                                    + $"liquidation is {liquidationTravel} away but the stop is {stopTravel}.");
+                                decimal liquidationTravel = verdict.LiquidationPrice <= 0m ? decimal.MaxValue : Math.Abs(price - verdict.LiquidationPrice);
+
+                                Assert.True(liquidationTravel > stopTravel, $"At {fraction:P1} risk, {leverage}x cap, stop {stop} and price {price}, " +
+                                                                            $"liquidation is {liquidationTravel} away but the stop is {stopTravel}.");
                             }
                         }
                     }
@@ -312,16 +299,6 @@ public sealed class RiskGateTests
 
     private static TradeRecord Win() => Trade(120m);
 
-    private static TradeRecord Trade(decimal grossPnl) => new(
-        Symbol: "TESTUSDT",
-        Side: PositionSide.Long,
-        OpenedAt: CandleFactory.Origin,
-        ClosedAt: CandleFactory.Origin.AddHours(1),
-        Quantity: 1m,
-        EntryPrice: 100m,
-        ExitPrice: 100m + grossPnl,
-        GrossPnl: grossPnl,
-        Fees: 0m,
-        Funding: 0m,
-        Reason: ExitReason.Signal);
+    private static TradeRecord Trade(decimal grossPnl) => new(Symbol: "TESTUSDT", Side: PositionSide.Long, OpenedAt: CandleFactory.Origin, ClosedAt: CandleFactory.Origin.AddHours(1),
+        Quantity: 1m, EntryPrice: 100m, ExitPrice: 100m + grossPnl, GrossPnl: grossPnl, Fees: 0m, Funding: 0m, Reason: ExitReason.Signal);
 }

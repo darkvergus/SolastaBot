@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Text;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
-using SolastaBot.Core.Risk;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Data.Integrity;
 using SolastaBot.Data.Market;
@@ -50,13 +49,20 @@ internal static class WalkForwardCommand
             Description = "Starting wallet balance.",
             DefaultValueFactory = _ => 10_000m
         };
+        Option<string> strategy = new("--strategy")
+        {
+            Description = "Which strategy to validate: trend-band or ema-cross.",
+            DefaultValueFactory = _ => "trend-band"
+        };
+        Option<bool> fixedParameters = new("--fixed")
+        {
+            Description = "Roll one frozen parameter set through the folds instead of searching a grid."
+        };
 
-        Command command = new(
-            "walk-forward",
-            "Choose parameters on past data, measure them on the data that came next.");
+        Command command = new("walk-forward", "Choose parameters on past data, measure them on the data that came next.");
 
         foreach (Option option in new Option[]
-                 { symbol, interval, from, to, database, slippage, train, test, risk, leverage, balance })
+                 { symbol, interval, from, to, database, slippage, train, test, risk, leverage, balance, strategy, fixedParameters })
         {
             command.Add(option);
         }
@@ -70,8 +76,7 @@ internal static class WalkForwardCommand
             DateTime end = CommonOptions.MonthEnd(CommonOptions.ParseMonth(result.GetRequiredValue(to), "--to"));
 
             await store.EnsureCreatedAsync(cancellationToken);
-            IReadOnlyList<Candle> candles =
-                await store.ReadCandlesAsync(contract, bars, start, end, cancellationToken);
+            IReadOnlyList<Candle> candles = await store.ReadCandlesAsync(contract, bars, start, end, cancellationToken);
 
             if (candles.Count < 2)
             {
@@ -86,26 +91,25 @@ internal static class WalkForwardCommand
                 return 2;
             }
 
-            IReadOnlyList<FundingEvent> funding =
-                await store.ReadFundingAsync(contract, start, end, cancellationToken);
+            IReadOnlyList<FundingEvent> funding = await store.ReadFundingAsync(contract, start, end, cancellationToken);
 
             WalkForwardReport report = new WalkForwardValidator().Run(
                 instrument: Instrument.BtcUsdtPerpetual with { Symbol = contract.ToUpperInvariant() },
                 candles: candles,
                 funding: funding,
-                grid: Grid(),
-                risk: new RiskOptions
+                grid: Grid(result.GetRequiredValue(strategy), result.GetValue(fixedParameters)),
+                risk: new()
                 {
                     RiskFractionPerTrade = result.GetValue(risk),
                     MaxLeverage = result.GetValue(leverage)
                 },
-                options: new BacktestOptions
+                options: new()
                 {
                     StartingBalance = result.GetValue(balance),
                     Fees = FeeSchedule.BinanceUsdFutures,
                     Slippage = BasisPointSlippage.FromName(result.GetRequiredValue(slippage))
                 },
-                walkForward: new WalkForwardOptions
+                walkForward: new()
                 {
                     TrainWindow = TimeSpan.FromDays(result.GetValue(train)),
                     TestWindow = TimeSpan.FromDays(result.GetValue(test))
@@ -118,11 +122,77 @@ internal static class WalkForwardCommand
         return command;
     }
 
+    private static IReadOnlyList<StrategyCandidate> Grid(string strategy, bool frozen) => strategy.ToLowerInvariant() switch
+    {
+        "trend-band" => frozen ? TrendBandFrozen() : TrendBandGrid(),
+        "ema-cross" => EmaCrossGrid(),
+        _ => throw new ArgumentException($"Unknown strategy '{strategy}'. Known strategies: trend-band, ema-cross.", nameof(strategy))
+    };
+
     /// <summary>
-    /// The candidate grid. Deliberately small: a grid with thousands of points will always contain
-    /// something that looks excellent on any six-month window, and finding it proves nothing.
+    /// One candidate, so that nothing is chosen and nothing can be chosen differently next roll.
     /// </summary>
-    private static IReadOnlyList<StrategyCandidate> Grid()
+    /// <remarks>
+    /// This is the strongest form of the small-grid defence, and it separates two questions a grid
+    /// search confuses: whether the strategy earns anything, and whether the search does. A rolling
+    /// result that survives with the parameters nailed down is the strategy's.
+    /// </remarks>
+    private static IReadOnlyList<StrategyCandidate> TrendBandFrozen()
+    {
+        TrendBandOptions options = new()
+        {
+            FastPeriod = 21,
+            SlowPeriod = 55,
+            AtrPeriod = 14,
+            TrendPeriod = 14,
+            EntryBandBasisPoints = 50m,
+            StopAtrMultiple = 2.5m,
+            MinimumTrendStrength = 20m
+        };
+
+        return [new("21/55 band 50bp frozen", () => new TrendBandStrategy(options))];
+    }
+
+    /// <summary>
+    /// Six candidates: three speeds crossed with two entry bands.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately far smaller than <see cref="EmaCrossGrid"/>'s fifty-four. That grid is part of
+    /// why the strategy it served changed parameters on twenty of twenty-six rolls: a grid wide
+    /// enough to contain a winner for every six-month window will find one every time, and the
+    /// finding means nothing. The stop multiple and the ADX floor are fixed here rather than
+    /// searched, so what walk-forward measures is the speed and the band and not the search.
+    /// </remarks>
+    private static IReadOnlyList<StrategyCandidate> TrendBandGrid()
+    {
+        (int Fast, int Slow)[] speeds = [(13, 34), (21, 55), (34, 89)];
+        decimal[] bands = [25m, 75m];
+
+        List<StrategyCandidate> grid = [];
+
+        foreach ((int fast, int slow) in speeds)
+        {
+            grid.AddRange(from band in bands
+                let options = new TrendBandOptions
+                {
+                    FastPeriod = fast,
+                    SlowPeriod = slow,
+                    AtrPeriod = 14,
+                    TrendPeriod = 14,
+                    EntryBandBasisPoints = band,
+                    StopAtrMultiple = 2.5m,
+                    MinimumTrendStrength = 20m
+                }
+                select new StrategyCandidate($"{fast}/{slow} band {band}bp", () => new TrendBandStrategy(options)));
+        }
+
+        return grid;
+    }
+
+    /// <summary>
+    /// The rejected strategy's candidate grid, kept so that <c>docs/m4-gate.md</c> stays reproducible.
+    /// </summary>
+    private static IReadOnlyList<StrategyCandidate> EmaCrossGrid()
     {
         int[] fasts = [9, 12, 21];
         int[] slows = [26, 55, 100];
@@ -142,9 +212,8 @@ internal static class WalkForwardCommand
 
                 foreach (decimal stop in stops)
                 {
-                    foreach (decimal floor in floors)
-                    {
-                        EmaCrossOptions options = new()
+                    grid.AddRange(from floor in floors
+                        let options = new EmaCrossOptions
                         {
                             FastPeriod = fast,
                             SlowPeriod = slow,
@@ -152,12 +221,8 @@ internal static class WalkForwardCommand
                             TrendPeriod = 14,
                             StopAtrMultiple = stop,
                             MinimumTrendStrength = floor
-                        };
-
-                        grid.Add(new StrategyCandidate(
-                            $"{fast}/{slow} stop {stop} adx {floor}",
-                            () => new EmaCrossStrategy(options)));
-                    }
+                        }
+                        select new StrategyCandidate($"{fast}/{slow} stop {stop} adx {floor}", () => new EmaCrossStrategy(options)));
                 }
             }
         }
@@ -169,33 +234,24 @@ internal static class WalkForwardCommand
     {
         StringBuilder text = new();
         text.AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"{symbol.ToUpperInvariant()}  walk-forward  slippage={slippage}  {report.Folds.Count} folds");
+        text.AppendLine(CultureInfo.InvariantCulture, $"{symbol.ToUpperInvariant()}  walk-forward  slippage={slippage}  {report.Folds.Count} folds");
         text.AppendLine();
         text.AppendLine("  fold  test window            chosen                    train      test");
 
         foreach (WalkForwardFold fold in report.Folds)
         {
-            text.AppendLine(CultureInfo.InvariantCulture,
-                $"  {fold.Index,4}  {fold.TestFrom:yyyy-MM-dd} to {fold.TestTo:yyyy-MM-dd}  "
-                + $"{fold.ChosenCandidate,-24}  {fold.Train.TotalReturn,8:P1}  {fold.Test.TotalReturn,8:P1}");
+            text.AppendLine(CultureInfo.InvariantCulture, $"  {fold.Index,4}  {fold.TestFrom:yyyy-MM-dd} to {fold.TestTo:yyyy-MM-dd}  "
+                                                          + $"{fold.ChosenCandidate,-24}  {fold.Train.TotalReturn,8:P1}  {fold.Test.TotalReturn,8:P1}");
         }
 
         text.AppendLine();
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"  Out-of-sample equity   {report.StartingBalance:N2} to {report.FinalEquity:N2}");
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"  Out-of-sample return   {report.Combined.TotalReturn:P2}");
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"  Max drawdown           {report.Combined.MaxDrawdown:P2}");
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"  Trades                 {report.Combined.TradeCount}");
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"  Profitable folds       {report.ProfitableFolds} of {report.Folds.Count}");
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"  Parameter changes      {report.ParameterChanges} of {Math.Max(0, report.Folds.Count - 1)} rolls");
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"  Fees and funding       {report.Combined.TotalFees + report.Combined.TotalFunding:N2}");
+        text.AppendLine(CultureInfo.InvariantCulture, $"  Out-of-sample equity   {report.StartingBalance:N2} to {report.FinalEquity:N2}");
+        text.AppendLine(CultureInfo.InvariantCulture, $"  Out-of-sample return   {report.Combined.TotalReturn:P2}");
+        text.AppendLine(CultureInfo.InvariantCulture, $"  Max drawdown           {report.Combined.MaxDrawdown:P2}");
+        text.AppendLine(CultureInfo.InvariantCulture, $"  Trades                 {report.Combined.TradeCount}");
+        text.AppendLine(CultureInfo.InvariantCulture, $"  Profitable folds       {report.ProfitableFolds} of {report.Folds.Count}");
+        text.AppendLine(CultureInfo.InvariantCulture, $"  Parameter changes      {report.ParameterChanges} of {Math.Max(0, report.Folds.Count - 1)} rolls");
+        text.AppendLine(CultureInfo.InvariantCulture, $"  Fees and funding       {report.Combined.TotalFees + report.Combined.TotalFunding:N2}");
 
         return text.ToString();
     }

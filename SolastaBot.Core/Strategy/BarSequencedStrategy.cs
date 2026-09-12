@@ -27,9 +27,7 @@ public abstract class BarSequencedStrategy : IStrategy
     {
         if (snapshot.Candle.OpenTime <= lastOpenTime)
         {
-            throw new InvalidOperationException(
-                $"{Name} received a bar opening at {snapshot.Candle.OpenTime:O} after one opening at "
-                + $"{lastOpenTime:O}. Bars must arrive once each, in ascending order.");
+            throw new InvalidOperationException($"{Name} received a bar opening at {snapshot.Candle.OpenTime:O} after one opening at {lastOpenTime:O}. Bars must arrive once each, in ascending order.");
         }
 
         lastOpenTime = snapshot.Candle.OpenTime;

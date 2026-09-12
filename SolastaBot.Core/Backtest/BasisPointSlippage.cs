@@ -2,14 +2,6 @@ using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Core.Backtest;
 
-public interface ISlippageModel
-{
-    string Name { get; }
-
-    /// <summary>Moves a reference price against the taker by the modelled amount.</summary>
-    decimal Apply(OrderSide side, decimal referencePrice);
-}
-
 /// <summary>
 /// Constant adverse slip in basis points.
 /// </summary>
@@ -41,8 +33,6 @@ public sealed record BasisPointSlippage(string Name, decimal BasisPoints) : ISli
     public decimal Apply(OrderSide side, decimal referencePrice)
     {
         decimal factor = BasisPoints / 10_000m;
-        return side == OrderSide.Buy
-            ? referencePrice * (1m + factor)
-            : referencePrice * (1m - factor);
+        return side == OrderSide.Buy ? referencePrice * (1m + factor) : referencePrice * (1m - factor);
     }
 }

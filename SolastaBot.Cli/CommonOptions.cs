@@ -48,7 +48,7 @@ internal static class CommonOptions
         string[] formats = ["yyyy-MM", "yyyy-M", "yyyy-MM-dd"];
         if (DateOnly.TryParseExact(value, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly parsed))
         {
-            return new DateOnly(parsed.Year, parsed.Month, 1);
+            return new(parsed.Year, parsed.Month, 1);
         }
 
         throw new ArgumentException($"{optionName} must look like 2024-03, but was '{value}'.", nameof(value));
@@ -59,8 +59,7 @@ internal static class CommonOptions
 
     internal static DateTime MonthEnd(DateOnly month) => MonthStart(month).AddMonths(1);
 
-    internal static ILoggerFactory Logging(bool verbose) => LoggerFactory.Create(builder =>
-        builder
+    internal static ILoggerFactory Logging(bool verbose) => LoggerFactory.Create(builder => builder
             .AddSimpleConsole(console =>
             {
                 console.SingleLine = true;

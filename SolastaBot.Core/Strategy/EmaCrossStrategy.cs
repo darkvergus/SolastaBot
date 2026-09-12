@@ -26,10 +26,10 @@ public sealed class EmaCrossStrategy : BarSequencedStrategy
         ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         this.options = options;
-        fast = new ExponentialMovingAverage(options.FastPeriod);
-        slow = new ExponentialMovingAverage(options.SlowPeriod);
-        atr = new AverageTrueRange(options.AtrPeriod);
-        adx = new AverageDirectionalIndex(options.TrendPeriod);
+        fast = new(options.FastPeriod);
+        slow = new(options.SlowPeriod);
+        atr = new(options.AtrPeriod);
+        adx = new(options.TrendPeriod);
     }
 
     public override string Name => "ema-cross";
@@ -38,16 +38,14 @@ public sealed class EmaCrossStrategy : BarSequencedStrategy
     /// The slow EMA and the ADX both need warming; ADX costs roughly two of its periods because its
     /// directional series only begins on the second bar and the index smooths those readings again.
     /// </summary>
-    public override int WarmupBars => Math.Max(
-        Math.Max(options.SlowPeriod, options.AtrPeriod + 1),
-        (options.TrendPeriod * 2) + 1);
+    public override int WarmupBars => Math.Max(Math.Max(options.SlowPeriod, options.AtrPeriod + 1), options.TrendPeriod * 2 + 1);
 
     protected override void OnReset()
     {
-        fast = new ExponentialMovingAverage(options.FastPeriod);
-        slow = new ExponentialMovingAverage(options.SlowPeriod);
-        atr = new AverageTrueRange(options.AtrPeriod);
-        adx = new AverageDirectionalIndex(options.TrendPeriod);
+        fast = new(options.FastPeriod);
+        slow = new(options.SlowPeriod);
+        atr = new(options.AtrPeriod);
+        adx = new(options.TrendPeriod);
     }
 
     protected override StrategyDecision OnCandle(in MarketSnapshot snapshot)
@@ -69,15 +67,13 @@ public sealed class EmaCrossStrategy : BarSequencedStrategy
 
         if (held == trend)
         {
-            return new StrategyDecision(trend, stopDistance, DecisionReason.Hold);
+            return new(trend, stopDistance, DecisionReason.Hold);
         }
 
         if (held != PositionSide.Flat)
         {
-            DecisionReason reason = trend == PositionSide.Flat
-                ? DecisionReason.ExitOnCross
-                : DecisionReason.ReverseOnCross;
-            return new StrategyDecision(trend, stopDistance, reason);
+            DecisionReason reason = trend == PositionSide.Flat ? DecisionReason.ExitOnCross : DecisionReason.ReverseOnCross;
+            return new(trend, stopDistance, reason);
         }
 
         if (trend == PositionSide.Flat)
@@ -90,10 +86,7 @@ public sealed class EmaCrossStrategy : BarSequencedStrategy
             return StrategyDecision.Flat(DecisionReason.TrendTooWeak);
         }
 
-        return new StrategyDecision(
-            trend,
-            stopDistance,
-            trend == PositionSide.Long ? DecisionReason.EnterLong : DecisionReason.EnterShort);
+        return new(trend, stopDistance, trend == PositionSide.Long ? DecisionReason.EnterLong : DecisionReason.EnterShort);
     }
 
     private PositionSide ResolveTrend()

@@ -25,8 +25,7 @@ public sealed class ExecutionPolicyTests
     [Fact]
     public void AnApprovedDirectionMatchingTheOpenPositionDoesNothing()
     {
-        PositionPlan plan = new ExecutionPolicy()
-            .Plan(Wants(PositionSide.Long, 5m), Open(PositionSide.Long));
+        PositionPlan plan = new ExecutionPolicy().Plan(Wants(PositionSide.Long, 5m), Open(PositionSide.Long));
 
         Assert.Equal(PositionAction.None, plan.Action);
     }
@@ -34,8 +33,7 @@ public sealed class ExecutionPolicyTests
     [Fact]
     public void AFlatTargetClosesAnOpenPosition()
     {
-        PositionPlan plan = new ExecutionPolicy()
-            .Plan(RiskVerdict.Flat(RiskOutcome.NoPosition), Open(PositionSide.Long));
+        PositionPlan plan = new ExecutionPolicy().Plan(RiskVerdict.Flat(RiskOutcome.NoPosition), Open(PositionSide.Long));
 
         Assert.Equal(PositionAction.Close, plan.Action);
         Assert.Equal(ExitReason.Signal, plan.CloseReason);
@@ -44,8 +42,7 @@ public sealed class ExecutionPolicyTests
     [Fact]
     public void AnOppositeDirectionReversesThePosition()
     {
-        PositionPlan plan = new ExecutionPolicy()
-            .Plan(Wants(PositionSide.Short), Open(PositionSide.Long));
+        PositionPlan plan = new ExecutionPolicy().Plan(Wants(PositionSide.Short), Open(PositionSide.Long));
 
         Assert.Equal(PositionAction.Reverse, plan.Action);
         Assert.Equal(PositionSide.Short, plan.Side);
@@ -54,15 +51,14 @@ public sealed class ExecutionPolicyTests
     [Fact]
     public void AHaltedGateClosesThePositionAndSaysWhy()
     {
-        PositionPlan plan = new ExecutionPolicy()
-            .Plan(RiskVerdict.Flat(RiskOutcome.Halted, "daily loss"), Open(PositionSide.Long));
+        PositionPlan plan = new ExecutionPolicy().Plan(RiskVerdict.Flat(RiskOutcome.Halted, "daily loss"), Open(PositionSide.Long));
 
         Assert.Equal(PositionAction.Close, plan.Action);
         Assert.Equal(ExitReason.RiskHalt, plan.CloseReason);
     }
 
     [Fact]
-    public void TheStoppedDirectionIsRefusedUntilTheTrendFlips()
+    public void TheStoppedDirectionIsRefusedWhileItsSignalPersists()
     {
         ExecutionPolicy policy = new();
         policy.NotifyStopped(PositionSide.Long);
@@ -71,16 +67,49 @@ public sealed class ExecutionPolicyTests
         Assert.Equal(PositionSide.Long, policy.BlockedSide);
     }
 
+    /// <summary>
+    /// The signal lapsing is what releases the block, not the opposite direction arriving.
+    /// </summary>
+    /// <remarks>
+    /// Releasing only on the opposite direction is a latch. A long-only strategy never asks to go
+    /// short, so the block would be taken once and held for the rest of the run, and a single
+    /// stop-out would silently stop the strategy trading. The symptom is a flat equity curve, which
+    /// reads as a strategy finding no opportunities rather than as a broken one.
+    /// </remarks>
     [Fact]
-    public void AFlatSignalNeitherReEntersNorReleasesTheBlock()
+    public void AFlatSignalReleasesTheBlockSoItCannotLatch()
     {
         ExecutionPolicy policy = new();
         policy.NotifyStopped(PositionSide.Long);
 
         policy.Plan(RiskVerdict.Flat(RiskOutcome.NoPosition), PositionState.Flat);
 
-        Assert.Equal(PositionSide.Long, policy.BlockedSide);
-        Assert.Equal(PositionAction.None, policy.Plan(Wants(PositionSide.Long), PositionState.Flat).Action);
+        Assert.Equal(PositionSide.Flat, policy.BlockedSide);
+        Assert.Equal(PositionAction.Open, policy.Plan(Wants(PositionSide.Long), PositionState.Flat).Action);
+    }
+
+    /// <summary>
+    /// Drives the policy the way a long-only configuration does, where the short side never appears.
+    /// </summary>
+    [Fact]
+    public void ALongOnlyStrategyCanAlwaysTradeAgainAfterAStopOut()
+    {
+        ExecutionPolicy policy = new();
+
+        for (int cycle = 0; cycle < 5; cycle++)
+        {
+            policy.NotifyStopped(PositionSide.Long);
+
+            // The trend still reads long on the bar after the stop, so entry is refused.
+            Assert.Equal(PositionAction.None, policy.Plan(Wants(PositionSide.Long), PositionState.Flat).Action);
+
+            // The signal lapses, which is the only release a long-only strategy can ever offer.
+            policy.Plan(RiskVerdict.Flat(RiskOutcome.NoPosition), PositionState.Flat);
+
+            Assert.Equal(
+                PositionAction.Open,
+                policy.Plan(Wants(PositionSide.Long), PositionState.Flat).Action);
+        }
     }
 
     [Fact]
@@ -120,8 +149,7 @@ public sealed class ExecutionPolicyTests
     [Fact]
     public void AZeroQuantityApprovalNeverOpens()
     {
-        PositionPlan plan = new ExecutionPolicy()
-            .Plan(Wants(PositionSide.Long, 0m), PositionState.Flat);
+        PositionPlan plan = new ExecutionPolicy().Plan(Wants(PositionSide.Long, 0m), PositionState.Flat);
 
         Assert.Equal(PositionAction.None, plan.Action);
     }

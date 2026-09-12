@@ -1,6 +1,5 @@
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
-using SolastaBot.Core.Risk;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Tests.Support;
 
@@ -25,7 +24,7 @@ public sealed class DeterminismTests
             Instrument = Instrument.BtcUsdtPerpetual,
             Candles = Series,
             Funding = funding ?? [],
-            Strategy = new EmaCrossStrategy(new EmaCrossOptions
+            Strategy = new EmaCrossStrategy(new()
             {
                 FastPeriod = 12,
                 SlowPeriod = 26,
@@ -34,7 +33,7 @@ public sealed class DeterminismTests
                 MinimumTrendStrength = 18m,
                 StopAtrMultiple = 2.5m
             }),
-            Risk = new RiskGate(new RiskOptions
+            Risk = new(new()
             {
                 RiskFractionPerTrade = 0.01m,
                 MaxLeverage = 3,
@@ -90,11 +89,9 @@ public sealed class DeterminismTests
         Assert.NotEmpty(result.Trades);
 
         DateTime lastTrade = result.Trades[^1].ClosedAt;
-        DateTime threeQuartersIn = result.From + ((result.To - result.From) * 0.75);
+        DateTime threeQuartersIn = result.From + (result.To - result.From) * 0.75;
 
-        Assert.True(
-            lastTrade > threeQuartersIn,
-            $"The last trade closed at {lastTrade:O}, before {threeQuartersIn:O}. Trading appears to have stopped.");
+        Assert.True(lastTrade > threeQuartersIn, $"The last trade closed at {lastTrade:O}, before {threeQuartersIn:O}. Trading appears to have stopped.");
     }
 
     /// <summary>
@@ -112,10 +109,8 @@ public sealed class DeterminismTests
         };
 
         decimal frictionless = new BacktestEngine().Run(Request(free)).Metrics.FinalEquity;
-        decimal withFees = new BacktestEngine().Run(Request(free with { Fees = FeeSchedule.BinanceUsdFutures }))
-            .Metrics.FinalEquity;
-        decimal withSlippage = new BacktestEngine().Run(Request(free with { Slippage = BasisPointSlippage.Harsh }))
-            .Metrics.FinalEquity;
+        decimal withFees = new BacktestEngine().Run(Request(free with { Fees = FeeSchedule.BinanceUsdFutures })).Metrics.FinalEquity;
+        decimal withSlippage = new BacktestEngine().Run(Request(free with { Slippage = BasisPointSlippage.Harsh })).Metrics.FinalEquity;
 
         Assert.True(withFees < frictionless, $"Fees did not cost anything: {withFees} against {frictionless}.");
         Assert.True(withSlippage < frictionless, $"Slippage did not cost anything: {withSlippage} against {frictionless}.");
@@ -141,9 +136,7 @@ public sealed class DeterminismTests
 
         Assert.Equal(0m, without.Metrics.TotalFunding);
         Assert.NotEqual(0m, with.Metrics.TotalFunding);
-        Assert.Equal(
-            with.Metrics.TotalFunding,
-            with.Trades.Sum(trade => trade.Funding));
+        Assert.Equal(with.Metrics.TotalFunding, with.Trades.Sum(trade => trade.Funding));
     }
 
     /// <summary>
@@ -165,7 +158,7 @@ public sealed class DeterminismTests
 
         foreach (BasisPointSlippage profile in profiles)
         {
-            BacktestResult result = new BacktestEngine().Run(Request(new BacktestOptions
+            BacktestResult result = new BacktestEngine().Run(Request(new()
             {
                 StartingBalance = 10_000m,
                 Fees = FeeSchedule.Free,
@@ -173,9 +166,7 @@ public sealed class DeterminismTests
             }));
 
             Assert.Equal(profile.Name, result.SlippageProfile);
-            Assert.True(
-                result.Metrics.FinalEquity <= previous,
-                $"Profile {profile.Name} beat a gentler one: {result.Metrics.FinalEquity} against {previous}.");
+            Assert.True(result.Metrics.FinalEquity <= previous, $"Profile {profile.Name} beat a gentler one: {result.Metrics.FinalEquity} against {previous}.");
             previous = result.Metrics.FinalEquity;
         }
     }

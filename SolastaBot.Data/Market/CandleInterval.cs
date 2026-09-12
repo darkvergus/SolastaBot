@@ -45,9 +45,7 @@ public sealed record CandleInterval(string Code, TimeSpan Duration)
             }
         }
 
-        throw new ArgumentException(
-            $"Unknown interval '{code}'. Known intervals: {string.Join(", ", All.Select(entry => entry.Code))}.",
-            nameof(code));
+        throw new ArgumentException($"Unknown interval '{code}'. Known intervals: {string.Join(", ", All.Select(entry => entry.Code))}.", nameof(code));
     }
 
     public override string ToString() => Code;

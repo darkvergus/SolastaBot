@@ -56,9 +56,7 @@ public sealed class BacktestEngine
         for (int index = 0; index < candles.Count; index++)
         {
             Candle bar = candles[index];
-            DateTime barEnd = index + 1 < candles.Count
-                ? candles[index + 1].OpenTime
-                : bar.OpenTime + interval;
+            DateTime barEnd = index + 1 < candles.Count ? candles[index + 1].OpenTime : bar.OpenTime + interval;
 
             ledger.Observe(bar.OpenTime, session.MarkToMarket(bar.Open));
 
@@ -77,7 +75,7 @@ public sealed class BacktestEngine
             AccountState account = new(session.Wallet, session.Position.UnrealisedPnl(bar.Close));
             pending = request.Risk.Evaluate(decision, snapshot, account, ledger);
 
-            session.EquityCurve.Add(new EquityPoint(barEnd, session.MarkToMarket(bar.Close), session.Wallet));
+            session.EquityCurve.Add(new(barEnd, session.MarkToMarket(bar.Close), session.Wallet));
             if (session.Position.IsOpen)
             {
                 session.BarsInPosition++;
@@ -90,28 +88,12 @@ public sealed class BacktestEngine
             Close(request, session, ledger, last.Close, last.OpenTime + interval, ExitReason.EndOfData);
         }
 
-        return new BacktestResult(
-            StrategyName: request.Strategy.Name,
-            Symbol: request.Instrument.Symbol,
-            SlippageProfile: request.Options.Slippage.Name,
-            From: candles[0].OpenTime,
-            To: candles[^1].OpenTime + interval,
-            Trades: session.Trades,
-            EquityCurve: session.EquityCurve,
-            Metrics: BacktestMetrics.Compute(
-                request.Options.StartingBalance,
-                session.EquityCurve,
-                session.Trades,
-                session.BarsInPosition));
+        return new(StrategyName: request.Strategy.Name, Symbol: request.Instrument.Symbol, SlippageProfile: request.Options.Slippage.Name, From: candles[0].OpenTime,
+            To: candles[^1].OpenTime + interval, Trades: session.Trades, EquityCurve: session.EquityCurve, Metrics: BacktestMetrics.Compute(request.Options.StartingBalance,
+                session.EquityCurve, session.Trades, session.BarsInPosition));
     }
 
-    private void ApplyPlan(
-        BacktestRequest request,
-        Session session,
-        RiskLedger ledger,
-        in PositionPlan plan,
-        decimal price,
-        DateTime time)
+    private void ApplyPlan(BacktestRequest request, Session session, RiskLedger ledger, in PositionPlan plan, decimal price, DateTime time)
     {
         switch (plan.Action)
         {
@@ -136,8 +118,7 @@ public sealed class BacktestEngine
         }
     }
 
-    private static void Open(
-        BacktestRequest request, Session session, in PositionPlan plan, decimal price, DateTime time)
+    private static void Open(BacktestRequest request, Session session, in PositionPlan plan, decimal price, DateTime time)
     {
         OrderSide side = plan.Side == PositionSide.Long ? OrderSide.Buy : OrderSide.Sell;
         decimal fill = request.Options.Slippage.Apply(side, price);
@@ -148,7 +129,7 @@ public sealed class BacktestEngine
         session.OpenTradeFees = fee;
         session.OpenTradeFunding = 0m;
         session.LiquidationPrice = plan.LiquidationPrice;
-        session.Position = new PositionState
+        session.Position = new()
         {
             Side = plan.Side,
             Quantity = plan.Quantity,
@@ -159,13 +140,7 @@ public sealed class BacktestEngine
         };
     }
 
-    private static void Close(
-        BacktestRequest request,
-        Session session,
-        RiskLedger ledger,
-        decimal price,
-        DateTime time,
-        ExitReason reason)
+    private static void Close(BacktestRequest request, Session session, RiskLedger ledger, decimal price, DateTime time, ExitReason reason)
     {
         PositionState position = session.Position;
         if (!position.IsOpen)
@@ -180,18 +155,8 @@ public sealed class BacktestEngine
 
         session.Wallet += gross - fee;
 
-        TradeRecord record = new(
-            Symbol: request.Instrument.Symbol,
-            Side: position.Side,
-            OpenedAt: position.OpenedAt,
-            ClosedAt: time,
-            Quantity: position.Quantity,
-            EntryPrice: position.EntryPrice,
-            ExitPrice: fill,
-            GrossPnl: gross,
-            Fees: session.OpenTradeFees + fee,
-            Funding: session.OpenTradeFunding,
-            Reason: reason);
+        TradeRecord record = new(Symbol: request.Instrument.Symbol, Side: position.Side, OpenedAt: position.OpenedAt, ClosedAt: time, Quantity: position.Quantity, EntryPrice: position.EntryPrice,
+            ExitPrice: fill, GrossPnl: gross, Fees: session.OpenTradeFees + fee, Funding: session.OpenTradeFunding, Reason: reason);
 
         session.Trades.Add(record);
         ledger.RecordTrade(record);
@@ -210,8 +175,7 @@ public sealed class BacktestEngine
     /// exact, because funding lands on those boundaries; on daily bars it approximates three
     /// settlements at the day's opening price.
     /// </remarks>
-    private static void SettleFunding(
-        BacktestRequest request, Session session, in Candle bar, DateTime barEnd, ref int fundingIndex)
+    private static void SettleFunding(BacktestRequest request, Session session, in Candle bar, DateTime barEnd, ref int fundingIndex)
     {
         IReadOnlyList<FundingEvent> events = request.Funding;
 
@@ -236,8 +200,7 @@ public sealed class BacktestEngine
         }
     }
 
-    private static void ApplyStop(
-        BacktestRequest request, Session session, RiskLedger ledger, ExecutionPolicy policy, in Candle bar)
+    private static void ApplyStop(BacktestRequest request, Session session, RiskLedger ledger, ExecutionPolicy policy, in Candle bar)
     {
         PositionState position = session.Position;
         if (!position.IsOpen || position.StopPrice <= 0m)
@@ -269,17 +232,14 @@ public sealed class BacktestEngine
         policy.NotifyStopped(PositionSide.Short);
     }
 
-    private static void ApplyLiquidation(
-        BacktestRequest request, Session session, RiskLedger ledger, in Candle bar)
+    private static void ApplyLiquidation(BacktestRequest request, Session session, RiskLedger ledger, in Candle bar)
     {
         if (!session.Position.IsOpen || session.LiquidationPrice <= 0m)
         {
             return;
         }
 
-        bool hit = session.Position.Side == PositionSide.Long
-            ? bar.Low <= session.LiquidationPrice
-            : bar.High >= session.LiquidationPrice;
+        bool hit = session.Position.Side == PositionSide.Long ? bar.Low <= session.LiquidationPrice : bar.High >= session.LiquidationPrice;
 
         if (hit)
         {
@@ -287,8 +247,7 @@ public sealed class BacktestEngine
         }
     }
 
-    private static int EffectiveLeverage(decimal notional, decimal equity) =>
-        equity <= 0m ? 1 : Math.Max(1, (int)Math.Ceiling(notional / equity));
+    private static int EffectiveLeverage(decimal notional, decimal equity) => equity <= 0m ? 1 : Math.Max(1, (int)Math.Ceiling(notional / equity));
 
     private sealed class Session(decimal startingBalance)
     {

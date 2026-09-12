@@ -1,73 +1,7 @@
 using SolastaBot.Core.Domain;
 using SolastaBot.Core.Risk;
-using SolastaBot.Core.Strategy;
 
 namespace SolastaBot.Core.Backtest;
-
-/// <summary>One parameter set under consideration, named for the report.</summary>
-public sealed record StrategyCandidate(string Name, Func<IStrategy> Create);
-
-public sealed record WalkForwardOptions
-{
-    public TimeSpan TrainWindow { get; init; } = TimeSpan.FromDays(180);
-
-    public TimeSpan TestWindow { get; init; } = TimeSpan.FromDays(60);
-
-    /// <summary>Trades a candidate must make in training before its result is believed.</summary>
-    public int MinimumTrainTrades { get; init; } = 8;
-
-    public void Validate()
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(TrainWindow, TimeSpan.Zero);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(TestWindow, TimeSpan.Zero);
-        ArgumentOutOfRangeException.ThrowIfNegative(MinimumTrainTrades);
-    }
-}
-
-public sealed record WalkForwardFold(
-    int Index,
-    DateTime TrainFrom,
-    DateTime TrainTo,
-    DateTime TestFrom,
-    DateTime TestTo,
-    string ChosenCandidate,
-    BacktestMetrics Train,
-    BacktestMetrics Test);
-
-public sealed record WalkForwardReport(
-    IReadOnlyList<WalkForwardFold> Folds,
-    decimal StartingBalance,
-    decimal FinalEquity,
-    IReadOnlyList<TradeRecord> Trades,
-    IReadOnlyList<EquityPoint> EquityCurve,
-    BacktestMetrics Combined)
-{
-    public int ProfitableFolds => Folds.Count(fold => fold.Test.TotalReturn > 0m);
-
-    /// <summary>
-    /// How often the training window chose a different parameter set than the fold before it.
-    /// </summary>
-    /// <remarks>
-    /// A set that keeps changing is the clearest sign that training is fitting noise. A robust edge
-    /// should keep picking roughly the same parameters as the window rolls.
-    /// </remarks>
-    public int ParameterChanges
-    {
-        get
-        {
-            int changes = 0;
-            for (int index = 1; index < Folds.Count; index++)
-            {
-                if (Folds[index].ChosenCandidate != Folds[index - 1].ChosenCandidate)
-                {
-                    changes++;
-                }
-            }
-
-            return changes;
-        }
-    }
-}
 
 /// <summary>
 /// Rolling train-then-test validation.
@@ -86,14 +20,8 @@ public sealed record WalkForwardReport(
 /// </remarks>
 public sealed class WalkForwardValidator
 {
-    public WalkForwardReport Run(
-        Instrument instrument,
-        IReadOnlyList<Candle> candles,
-        IReadOnlyList<FundingEvent> funding,
-        IReadOnlyList<StrategyCandidate> grid,
-        RiskOptions risk,
-        BacktestOptions options,
-        WalkForwardOptions walkForward)
+    public WalkForwardReport Run(Instrument instrument, IReadOnlyList<Candle> candles, IReadOnlyList<FundingEvent> funding, IReadOnlyList<StrategyCandidate> grid,
+        RiskOptions risk, BacktestOptions options, WalkForwardOptions walkForward)
     {
         ArgumentNullException.ThrowIfNull(instrument);
         ArgumentNullException.ThrowIfNull(candles);
@@ -143,10 +71,8 @@ public sealed class WalkForwardValidator
                 break;
             }
 
-            StrategyCandidate? chosen = Choose(
-                engine, instrument, trainBars, funding, grid, risk, options, equity, walkForward,
-                out BacktestMetrics trainMetrics);
-
+            StrategyCandidate? chosen = Choose(engine, instrument, trainBars, funding, grid, risk, options, equity, walkForward, out BacktestMetrics trainMetrics);
+            
             if (chosen is null)
             {
                 // No candidate traded enough in training to be worth believing; sit this fold out.
@@ -155,25 +81,17 @@ public sealed class WalkForwardValidator
                 continue;
             }
 
-            BacktestResult test = engine.Run(new BacktestRequest
+            BacktestResult test = engine.Run(new()
             {
                 Instrument = instrument,
                 Candles = testBars,
                 Funding = funding,
                 Strategy = chosen.Create(),
-                Risk = new RiskGate(risk),
+                Risk = new(risk),
                 Options = options with { StartingBalance = equity }
             });
 
-            folds.Add(new WalkForwardFold(
-                Index: index,
-                TrainFrom: trainFrom,
-                TrainTo: trainTo,
-                TestFrom: trainTo,
-                TestTo: testTo,
-                ChosenCandidate: chosen.Name,
-                Train: trainMetrics,
-                Test: test.Metrics));
+            folds.Add(new(Index: index, TrainFrom: trainFrom, TrainTo: trainTo, TestFrom: trainTo, TestTo: testTo, ChosenCandidate: chosen.Name, Train: trainMetrics, Test: test.Metrics));
 
             trades.AddRange(test.Trades);
             curve.AddRange(test.EquityCurve);
@@ -183,30 +101,15 @@ public sealed class WalkForwardValidator
             index++;
         }
 
-        return new WalkForwardReport(
-            Folds: folds,
-            StartingBalance: options.StartingBalance,
-            FinalEquity: equity,
-            Trades: trades,
-            EquityCurve: curve,
-            Combined: BacktestMetrics.Compute(options.StartingBalance, curve, trades, CountExposure(curve, trades)));
+        return new(Folds: folds, StartingBalance: options.StartingBalance, FinalEquity: equity, Trades: trades, EquityCurve: curve, Combined: BacktestMetrics.Compute(options.StartingBalance, curve, trades, CountExposure(curve, trades)));
     }
 
     /// <summary>
     /// Picks the training window's best candidate by risk-adjusted return, ignoring any that did not
     /// trade enough for its figures to mean anything.
     /// </summary>
-    private static StrategyCandidate? Choose(
-        BacktestEngine engine,
-        Instrument instrument,
-        IReadOnlyList<Candle> trainBars,
-        IReadOnlyList<FundingEvent> funding,
-        IReadOnlyList<StrategyCandidate> grid,
-        RiskOptions risk,
-        BacktestOptions options,
-        decimal equity,
-        WalkForwardOptions walkForward,
-        out BacktestMetrics trainMetrics)
+    private static StrategyCandidate? Choose(BacktestEngine engine, Instrument instrument, IReadOnlyList<Candle> trainBars, IReadOnlyList<FundingEvent> funding, IReadOnlyList<StrategyCandidate> grid,
+        RiskOptions risk, BacktestOptions options, decimal equity, WalkForwardOptions walkForward, out BacktestMetrics trainMetrics)
     {
         StrategyCandidate? best = null;
         double bestScore = double.NegativeInfinity;
@@ -214,13 +117,13 @@ public sealed class WalkForwardValidator
 
         foreach (StrategyCandidate candidate in grid)
         {
-            BacktestResult result = engine.Run(new BacktestRequest
+            BacktestResult result = engine.Run(new()
             {
                 Instrument = instrument,
                 Candles = trainBars,
                 Funding = funding,
                 Strategy = candidate.Create(),
-                Risk = new RiskGate(risk),
+                Risk = new(risk),
                 Options = options with { StartingBalance = equity }
             });
 
@@ -253,19 +156,10 @@ public sealed class WalkForwardValidator
 
     private static IReadOnlyList<Candle> Slice(IReadOnlyList<Candle> candles, DateTime from, DateTime to)
     {
-        List<Candle> slice = [];
-        foreach (Candle candle in candles)
-        {
-            if (candle.OpenTime >= to)
-            {
-                break;
-            }
-
-            if (candle.OpenTime >= from)
-            {
-                slice.Add(candle);
-            }
-        }
+        List<Candle> slice =
+        [
+            .. candles.TakeWhile(candle => candle.OpenTime < to).Where(candle => candle.OpenTime >= from)
+        ];
 
         return slice;
     }
@@ -278,11 +172,7 @@ public sealed class WalkForwardValidator
         }
 
         // Approximated from the trades rather than tracked per bar, since folds are stitched together.
-        TimeSpan held = TimeSpan.Zero;
-        foreach (TradeRecord trade in trades)
-        {
-            held += trade.ClosedAt - trade.OpenedAt;
-        }
+        TimeSpan held = trades.Aggregate(TimeSpan.Zero, (current, trade) => current + (trade.ClosedAt - trade.OpenedAt));
 
         TimeSpan span = curve[^1].Time - curve[0].Time;
         return span <= TimeSpan.Zero ? 0 : (int)(curve.Count * (held.TotalSeconds / span.TotalSeconds));

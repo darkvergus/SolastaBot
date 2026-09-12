@@ -1,7 +1,6 @@
 using System.CommandLine;
 using SolastaBot.Core.Backtest;
 using SolastaBot.Core.Domain;
-using SolastaBot.Core.Risk;
 using SolastaBot.Core.Strategy;
 using SolastaBot.Data.Integrity;
 using SolastaBot.Data.Market;
@@ -29,8 +28,18 @@ internal static class BacktestCommand
             Description = "Starting wallet balance in quote currency.",
             DefaultValueFactory = _ => 10_000m
         };
+        Option<string> strategy = new("--strategy")
+        {
+            Description = "Which strategy to run: trend-band or ema-cross.",
+            DefaultValueFactory = _ => "trend-band"
+        };
         Option<int> fast = new("--fast") { Description = "Fast EMA period.", DefaultValueFactory = _ => 21 };
         Option<int> slow = new("--slow") { Description = "Slow EMA period.", DefaultValueFactory = _ => 55 };
+        Option<decimal> band = new("--band-bps")
+        {
+            Description = "Entry band in basis points of the slow average. trend-band only.",
+            DefaultValueFactory = _ => 50m
+        };
         Option<int> atr = new("--atr") { Description = "ATR period.", DefaultValueFactory = _ => 14 };
         Option<decimal> stop = new("--stop-atr")
         {
@@ -62,8 +71,8 @@ internal static class BacktestCommand
         Command backtest = new("backtest", "Run the trend strategy over stored history.");
         foreach (Option option in new Option[]
                  {
-                     symbol, interval, from, to, database, slippage, balance,
-                     fast, slow, atr, stop, trend, risk, leverage, longOnly, noFunding, ledger
+                     symbol, interval, from, to, database, slippage, balance, strategy,
+                     fast, slow, band, atr, stop, trend, risk, leverage, longOnly, noFunding, ledger
                  })
         {
             backtest.Add(option);
@@ -78,13 +87,11 @@ internal static class BacktestCommand
             DateTime end = CommonOptions.MonthEnd(CommonOptions.ParseMonth(result.GetRequiredValue(to), "--to"));
 
             await store.EnsureCreatedAsync(cancellationToken);
-            IReadOnlyList<Candle> candles =
-                await store.ReadCandlesAsync(contract, bars, start, end, cancellationToken);
+            IReadOnlyList<Candle> candles = await store.ReadCandlesAsync(contract, bars, start, end, cancellationToken);
 
             if (candles.Count < 2)
             {
-                Console.Error.WriteLine(
-                    $"Only {candles.Count} bars for {contract} {bars.Code} in that range. Run 'solasta data pull' first.");
+                Console.Error.WriteLine($"Only {candles.Count} bars for {contract} {bars.Code} in that range. Run 'solasta data pull' first.");
                 return 1;
             }
 
@@ -96,30 +103,21 @@ internal static class BacktestCommand
                 return 2;
             }
 
-            IReadOnlyList<FundingEvent> funding =
-                await store.ReadFundingAsync(contract, start, end, cancellationToken);
+            IReadOnlyList<FundingEvent> funding = await store.ReadFundingAsync(contract, start, end, cancellationToken);
 
-            BacktestResult outcome = new BacktestEngine().Run(new BacktestRequest
+            BacktestResult outcome = new BacktestEngine().Run(new()
             {
                 Instrument = Instrument.BtcUsdtPerpetual with { Symbol = contract.ToUpperInvariant() },
                 Candles = candles,
                 Funding = funding,
-                Strategy = new EmaCrossStrategy(new EmaCrossOptions
-                {
-                    FastPeriod = result.GetValue(fast),
-                    SlowPeriod = result.GetValue(slow),
-                    AtrPeriod = result.GetValue(atr),
-                    TrendPeriod = result.GetValue(atr),
-                    MinimumTrendStrength = result.GetValue(trend),
-                    StopAtrMultiple = result.GetValue(stop),
-                    AllowShorts = !result.GetValue(longOnly)
-                }),
-                Risk = new RiskGate(new RiskOptions
+                Strategy = Build(result.GetRequiredValue(strategy), result.GetValue(fast), result.GetValue(slow), result.GetValue(band), result.GetValue(atr),
+                    result.GetValue(trend), result.GetValue(stop), !result.GetValue(longOnly)),
+                Risk = new(new()
                 {
                     RiskFractionPerTrade = result.GetValue(risk),
                     MaxLeverage = result.GetValue(leverage)
                 }),
-                Options = new BacktestOptions
+                Options = new()
                 {
                     StartingBalance = result.GetValue(balance),
                     Fees = FeeSchedule.BinanceUsdFutures,
@@ -142,4 +140,35 @@ internal static class BacktestCommand
 
         return backtest;
     }
+
+    /// <summary>
+    /// Resolves the named strategy. Both live here because a rejected strategy still has to be
+    /// runnable: the numbers in <c>docs/m4-gate.md</c> mean nothing if they cannot be reproduced.
+    /// </summary>
+    private static IStrategy Build(string name, int fast, int slow, decimal bandBasisPoints, int atrPeriod, decimal minimumTrend, decimal stopAtrMultiple, bool allowShorts) =>
+        name.ToLowerInvariant() switch
+        {
+            "trend-band" => new TrendBandStrategy(new()
+            {
+                FastPeriod = fast,
+                SlowPeriod = slow,
+                AtrPeriod = atrPeriod,
+                TrendPeriod = atrPeriod,
+                EntryBandBasisPoints = bandBasisPoints,
+                MinimumTrendStrength = minimumTrend,
+                StopAtrMultiple = stopAtrMultiple,
+                AllowShorts = allowShorts
+            }),
+            "ema-cross" => new EmaCrossStrategy(new()
+            {
+                FastPeriod = fast,
+                SlowPeriod = slow,
+                AtrPeriod = atrPeriod,
+                TrendPeriod = atrPeriod,
+                MinimumTrendStrength = minimumTrend,
+                StopAtrMultiple = stopAtrMultiple,
+                AllowShorts = allowShorts
+            }),
+            _ => throw new ArgumentException($"Unknown strategy '{name}'. Known strategies: trend-band, ema-cross.", nameof(name))
+        };
 }

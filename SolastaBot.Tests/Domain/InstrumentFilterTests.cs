@@ -6,11 +6,8 @@ public sealed class InstrumentFilterTests
 {
     private static readonly Instrument Btc = Instrument.BtcUsdtPerpetual;
 
-    [Theory]
-    [InlineData("1.23456", "0.001", "1.234")]
-    [InlineData("0.0009", "0.001", "0")]
-    [InlineData("10", "0.001", "10")]
-    [InlineData("0.3", "0.001", "0.3")]
+    [Theory, InlineData("1.23456", "0.001", "1.234"), InlineData("0.0009", "0.001", "0"), InlineData("10", "0.001", "10"),
+     InlineData("0.3", "0.001", "0.3")]
     public void QuantitiesAlwaysRoundDownToTheStep(string value, string step, string expected)
     {
         Assert.Equal(
@@ -73,25 +70,25 @@ public sealed class InstrumentFilterTests
 
         for (int iteration = 0; iteration < 20_000; iteration++)
         {
-            state = (state * 6364136223846793005UL) + 1442695040888963407UL;
+            state = state * 6364136223846793005UL + 1442695040888963407UL;
             Instrument instrument = instruments[(int)(state >> 60) % instruments.Length];
 
-            decimal quantity = (decimal)(state >> 40) / 1_000_000m;
-            decimal price = 1m + ((decimal)((state >> 20) & 0xFFFFF) / 16m);
+            decimal quantity = (state >> 40) / 1_000_000m;
+            decimal price = 1m + ((state >> 20) & 0xFFFFF) / 16m;
 
             FilterResult result = InstrumentFilter.Prepare(instrument, quantity, price, price);
+
             if (!result.Accepted)
             {
                 continue;
             }
 
             accepted++;
-            Assert.True(
-                InstrumentFilter.IsOnGrid(result.Quantity, instrument.StepSize),
-                $"Quantity {result.Quantity} is off the {instrument.StepSize} step grid.");
-            Assert.True(
-                InstrumentFilter.IsOnGrid(result.Price!.Value, instrument.TickSize),
-                $"Price {result.Price} is off the {instrument.TickSize} tick grid.");
+
+            Assert.True(InstrumentFilter.IsOnGrid(result.Quantity, instrument.StepSize), $"Quantity {result.Quantity} is off the {instrument.StepSize} step grid.");
+
+            Assert.True(InstrumentFilter.IsOnGrid(result.Price!.Value, instrument.TickSize), $"Price {result.Price} is off the {instrument.TickSize} tick grid.");
+
             Assert.True(result.Quantity >= instrument.MinQuantity);
             Assert.True(result.Quantity * result.Price.Value >= instrument.MinNotional);
             Assert.True(result.Quantity <= quantity, "Rounding must never increase the quantity.");

@@ -5,11 +5,4 @@ namespace SolastaBot.Core.Domain;
 /// risk gate. The order router's only job is to transmit it, idempotently by
 /// <see cref="ClientOrderId"/> so that retrying a timed-out submission cannot double-fill.
 /// </summary>
-public sealed record OrderIntent(
-    string Symbol,
-    OrderSide Side,
-    OrderType Type,
-    decimal Quantity,
-    decimal? Price,
-    bool ReduceOnly,
-    string ClientOrderId);
+public sealed record OrderIntent(string Symbol, OrderSide Side, OrderType Type, decimal Quantity, decimal? Price, bool ReduceOnly, string ClientOrderId);

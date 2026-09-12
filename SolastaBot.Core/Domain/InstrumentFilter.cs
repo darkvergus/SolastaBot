@@ -1,24 +1,5 @@
 namespace SolastaBot.Core.Domain;
 
-public enum PriceRounding
-{
-    /// <summary>Toward zero. Use for a buy limit, where a lower price is never worse.</summary>
-    Down,
-
-    /// <summary>Away from zero. Use for a sell limit, where a higher price is never worse.</summary>
-    Up,
-
-    Nearest
-}
-
-/// <summary>Outcome of forcing an order onto the exchange's price and quantity grid.</summary>
-public readonly record struct FilterResult(decimal Quantity, decimal? Price, string? Rejection)
-{
-    public bool Accepted => Rejection is null;
-
-    public static FilterResult Reject(string reason) => new(0m, null, reason);
-}
-
 /// <summary>
 /// Forces prices and quantities onto the exchange's grid. Filter violations are the largest single
 /// source of rejected orders, so every submission goes through <see cref="Prepare"/> and nothing
@@ -67,12 +48,7 @@ public static class InstrumentFilter
     /// Rounds an order onto the grid and checks it against the minimum quantity and notional.
     /// </summary>
     /// <param name="referencePrice">Price used for the notional check; the mark price for a market order.</param>
-    public static FilterResult Prepare(
-        Instrument instrument,
-        decimal quantity,
-        decimal? price,
-        decimal referencePrice,
-        PriceRounding rounding = PriceRounding.Nearest)
+    public static FilterResult Prepare(Instrument instrument, decimal quantity, decimal? price, decimal referencePrice, PriceRounding rounding = PriceRounding.Nearest)
     {
         ArgumentNullException.ThrowIfNull(instrument);
 
@@ -89,13 +65,10 @@ public static class InstrumentFilter
         decimal roundedQuantity = FloorToStep(quantity, instrument.StepSize);
         if (roundedQuantity < instrument.MinQuantity)
         {
-            return FilterResult.Reject(
-                $"Quantity {roundedQuantity} is below the minimum {instrument.MinQuantity} for {instrument.Symbol}.");
+            return FilterResult.Reject($"Quantity {roundedQuantity} is below the minimum {instrument.MinQuantity} for {instrument.Symbol}.");
         }
 
-        decimal? roundedPrice = price is null
-            ? null
-            : RoundToTick(price.Value, instrument.TickSize, rounding);
+        decimal? roundedPrice = price is null ? null : RoundToTick(price.Value, instrument.TickSize, rounding);
 
         if (roundedPrice is <= 0m)
         {
@@ -105,11 +78,10 @@ public static class InstrumentFilter
         decimal notional = roundedQuantity * (roundedPrice ?? referencePrice);
         if (notional < instrument.MinNotional)
         {
-            return FilterResult.Reject(
-                $"Notional {notional} is below the minimum {instrument.MinNotional} for {instrument.Symbol}.");
+            return FilterResult.Reject($"Notional {notional} is below the minimum {instrument.MinNotional} for {instrument.Symbol}.");
         }
 
-        return new FilterResult(roundedQuantity, roundedPrice, null);
+        return new(roundedQuantity, roundedPrice, null);
     }
 
     /// <summary>True when the value sits exactly on the grid. Used by the filter-compliance tests.</summary>

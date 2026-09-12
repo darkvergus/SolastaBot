@@ -30,7 +30,7 @@ public static class CandleFactory
             decimal close = closes[index];
             decimal high = Math.Max(open, close) * (1m + wick);
             decimal low = Math.Min(open, close) * (1m - wick);
-            candles[index] = new Candle(Origin + (Interval * index), open, high, low, close, 1m);
+            candles[index] = new(Origin + Interval * index, open, high, low, close, 1m);
             previousClose = close;
         }
 
@@ -42,7 +42,7 @@ public static class CandleFactory
         decimal[] closes = new decimal[count];
         for (int index = 0; index < count; index++)
         {
-            closes[index] = start + (perBar * index);
+            closes[index] = start + perBar * index;
         }
 
         return FromCloses(closes);
@@ -57,10 +57,10 @@ public static class CandleFactory
 
         for (int index = 0; index < count; index++)
         {
-            state = (state * 6364136223846793005UL) + 1442695040888963407UL;
+            state = state * 6364136223846793005UL + 1442695040888963407UL;
             // Top 20 bits give a stable value in [-1, 1) with no floating point involved.
-            decimal unit = ((decimal)(state >> 44) / 524_288m) - 1m;
-            price *= 1m + (unit * volatility);
+            decimal unit = (state >> 44) / 524_288m - 1m;
+            price *= 1m + unit * volatility;
             price = Math.Round(Math.Max(price, 1m), 2);
             closes[index] = price;
         }
@@ -74,7 +74,7 @@ public static class CandleFactory
         FundingEvent[] events = new FundingEvent[count];
         for (int index = 0; index < count; index++)
         {
-            events[index] = new FundingEvent(from + TimeSpan.FromHours(8 * index), rate);
+            events[index] = new(from + TimeSpan.FromHours(8 * index), rate);
         }
 
         return events;

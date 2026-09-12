@@ -21,7 +21,7 @@ public sealed class AverageTrueRange
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(period, 1);
         Period = period;
-        smoother = new WilderSmoother(period);
+        smoother = new(period);
     }
 
     public int Period { get; }

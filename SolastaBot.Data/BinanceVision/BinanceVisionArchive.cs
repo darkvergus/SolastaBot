@@ -27,18 +27,11 @@ public static class BinanceVisionArchive
     {
         ArgumentNullException.ThrowIfNull(archive);
 
-        List<Candle> candles = [];
-
-        foreach (string[] fields in ReadRows(archive, minimumFields: 6))
-        {
-            candles.Add(new Candle(
-                OpenTime: ToUtc(long.Parse(fields[0], CultureInfo.InvariantCulture)),
-                Open: Number(fields[1]),
-                High: Number(fields[2]),
-                Low: Number(fields[3]),
-                Close: Number(fields[4]),
-                Volume: Number(fields[5])));
-        }
+        List<Candle> candles =
+        [
+            .. ReadRows(archive, minimumFields: 6).Select(fields => new Candle(OpenTime: ToUtc(long.Parse(fields[0], CultureInfo.InvariantCulture)), Open: Number(fields[1]),
+                High: Number(fields[2]), Low: Number(fields[3]), Close: Number(fields[4]), Volume: Number(fields[5])))
+        ];
 
         return candles;
     }
@@ -48,14 +41,10 @@ public static class BinanceVisionArchive
     {
         ArgumentNullException.ThrowIfNull(archive);
 
-        List<FundingEvent> events = [];
-
-        foreach (string[] fields in ReadRows(archive, minimumFields: 3))
-        {
-            events.Add(new FundingEvent(
-                Time: ToUtc(long.Parse(fields[0], CultureInfo.InvariantCulture)),
-                Rate: Number(fields[2])));
-        }
+        List<FundingEvent> events =
+        [
+            .. ReadRows(archive, minimumFields: 3).Select(fields => new FundingEvent(Time: ToUtc(long.Parse(fields[0], CultureInfo.InvariantCulture)), Rate: Number(fields[2])))
+        ];
 
         return events;
     }
@@ -64,10 +53,7 @@ public static class BinanceVisionArchive
     {
         using ZipArchive zip = new(archive, ZipArchiveMode.Read, leaveOpen: true);
 
-        ZipArchiveEntry entry = zip.Entries.Count == 1
-            ? zip.Entries[0]
-            : throw new InvalidDataException(
-                $"Expected exactly one file in the archive but found {zip.Entries.Count}.");
+        ZipArchiveEntry entry = zip.Entries.Count == 1 ? zip.Entries[0] : throw new InvalidDataException($"Expected exactly one file in the archive but found {zip.Entries.Count}.");
 
         using Stream content = entry.Open();
         using StreamReader reader = new(content);
@@ -88,8 +74,7 @@ public static class BinanceVisionArchive
             string[] fields = line.Split(',');
             if (fields.Length < minimumFields)
             {
-                throw new InvalidDataException(
-                    $"Row in '{entry.Name}' has {fields.Length} fields, fewer than the {minimumFields} required.");
+                throw new InvalidDataException($"Row in '{entry.Name}' has {fields.Length} fields, fewer than the {minimumFields} required.");
             }
 
             yield return fields;
@@ -104,10 +89,8 @@ public static class BinanceVisionArchive
     /// <c>6.7E-7</c>. The default decimal styles reject an exponent, which makes this look like a
     /// parser bug that only appears on certain months.
     /// </remarks>
-    private static decimal Number(string field) =>
-        decimal.Parse(field, NumberStyles.Float, CultureInfo.InvariantCulture);
+    private static decimal Number(string field) => decimal.Parse(field, NumberStyles.Float, CultureInfo.InvariantCulture);
 
-    private static DateTime ToUtc(long timestamp) => timestamp >= MicrosecondThreshold
-        ? DateTimeOffset.FromUnixTimeMilliseconds(timestamp / 1000).UtcDateTime
+    private static DateTime ToUtc(long timestamp) => timestamp >= MicrosecondThreshold ? DateTimeOffset.FromUnixTimeMilliseconds(timestamp / 1000).UtcDateTime
         : DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime;
 }

@@ -1,59 +1,6 @@
-using System.Globalization;
-using System.Text;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Data.Integrity;
-
-public sealed record IntegrityReport(
-    int Count,
-    DateTime? First,
-    DateTime? Last,
-    int MissingCount,
-    IReadOnlyList<DateTime> MissingSample,
-    IReadOnlyList<DateTime> Duplicates,
-    IReadOnlyList<DateTime> OutOfOrder,
-    IReadOnlyList<DateTime> Malformed)
-{
-    public bool IsClean =>
-        MissingCount == 0 && Duplicates.Count == 0 && OutOfOrder.Count == 0 && Malformed.Count == 0;
-
-    public string Describe()
-    {
-        StringBuilder text = new();
-        text.Append(CultureInfo.InvariantCulture, $"{Count} bars");
-
-        if (First is not null && Last is not null)
-        {
-            text.Append(CultureInfo.InvariantCulture, $" from {First:yyyy-MM-dd HH:mm} to {Last:yyyy-MM-dd HH:mm}");
-        }
-
-        if (IsClean)
-        {
-            return text.Append(", no gaps or duplicates.").ToString();
-        }
-
-        text.Append(':');
-        Append(text, "missing", MissingCount);
-        Append(text, "duplicated", Duplicates.Count);
-        Append(text, "out of order", OutOfOrder.Count);
-        Append(text, "malformed", Malformed.Count);
-
-        if (MissingSample.Count > 0)
-        {
-            text.Append(CultureInfo.InvariantCulture, $" First gap at {MissingSample[0]:yyyy-MM-dd HH:mm}.");
-        }
-
-        return text.ToString();
-
-        static void Append(StringBuilder text, string label, int count)
-        {
-            if (count > 0)
-            {
-                text.Append(CultureInfo.InvariantCulture, $" {count} {label};");
-            }
-        }
-    }
-}
 
 /// <summary>
 /// Checks a downloaded series for the flaws that quietly invalidate a backtest.
@@ -76,7 +23,7 @@ public static class SeriesIntegrity
 
         if (candles.Count == 0)
         {
-            return new IntegrityReport(0, null, null, 0, [], [], [], []);
+            return new(0, null, null, 0, [], [], [], []);
         }
 
         List<DateTime> missingSample = [];
@@ -130,14 +77,7 @@ public static class SeriesIntegrity
             previous = current;
         }
 
-        return new IntegrityReport(
-            Count: candles.Count,
-            First: candles[0].OpenTime,
-            Last: candles[^1].OpenTime,
-            MissingCount: missingCount,
-            MissingSample: missingSample,
-            Duplicates: duplicates,
-            OutOfOrder: outOfOrder,
-            Malformed: malformed);
+        return new(Count: candles.Count, First: candles[0].OpenTime, Last: candles[^1].OpenTime, MissingCount: missingCount, MissingSample: missingSample, Duplicates: duplicates,
+            OutOfOrder: outOfOrder, Malformed: malformed);
     }
 }

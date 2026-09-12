@@ -13,9 +13,12 @@ internal static class DataCommands
 {
     internal static Command Build()
     {
-        Command data = new("data", "Download and inspect historical market data.");
-        data.Add(BuildPull());
-        data.Add(BuildCheck());
+        Command data = new("data", "Download and inspect historical market data.")
+        {
+            BuildPull(),
+            BuildCheck()
+        };
+
         return data;
     }
 
@@ -29,14 +32,16 @@ internal static class DataCommands
         Option<bool> force = new("--force") { Description = "Re-download months already held." };
         Option<bool> verbose = new("--verbose", "-v") { Description = "Log every request." };
 
-        Command pull = new("pull", "Download monthly bars and funding rates from the Binance public archive.");
-        pull.Add(symbol);
-        pull.Add(interval);
-        pull.Add(from);
-        pull.Add(to);
-        pull.Add(database);
-        pull.Add(force);
-        pull.Add(verbose);
+        Command pull = new("pull", "Download monthly bars and funding rates from the Binance public archive.")
+        {
+            symbol,
+            interval,
+            from,
+            to,
+            database,
+            force,
+            verbose
+        };
 
         pull.SetAction(async (result, cancellationToken) =>
         {
@@ -47,13 +52,9 @@ internal static class DataCommands
             MarketDataStore store = CommonOptions.OpenStore(result.GetRequiredValue(database));
             HistoryDownloader downloader = new(client, store, logging.CreateLogger<HistoryDownloader>());
 
-            DownloadSummary summary = await downloader.PullAsync(
-                result.GetRequiredValue(symbol),
-                CommonOptions.ResolveInterval(result.GetRequiredValue(interval)),
-                CommonOptions.ParseMonth(result.GetRequiredValue(from), "--from"),
-                CommonOptions.ParseMonth(result.GetRequiredValue(to), "--to"),
-                result.GetValue(force),
-                cancellationToken);
+            DownloadSummary summary = await downloader.PullAsync(result.GetRequiredValue(symbol), CommonOptions.ResolveInterval(result.GetRequiredValue(interval)),
+                CommonOptions.ParseMonth(result.GetRequiredValue(from), "--from"), CommonOptions.ParseMonth(result.GetRequiredValue(to), "--to"),
+                result.GetValue(force), cancellationToken);
 
             Console.WriteLine();
             Console.WriteLine($"{summary.Symbol} {summary.Interval}  {summary.From:yyyy-MM} to {summary.To:yyyy-MM}");
@@ -67,8 +68,7 @@ internal static class DataCommands
             if (summary.MonthsUnavailable.Count > 0)
             {
                 Console.WriteLine();
-                Console.WriteLine("  No archive published for: "
-                    + string.Join(", ", summary.MonthsUnavailable.Select(month => month.ToString("yyyy-MM"))));
+                Console.WriteLine($"  No archive published for: {string.Join(", ", summary.MonthsUnavailable.Select(month => month.ToString("yyyy-MM")))}");
             }
 
             return summary.Integrity.IsClean ? 0 : 2;
@@ -85,12 +85,14 @@ internal static class DataCommands
         Option<string> to = CommonOptions.To();
         Option<string> database = CommonOptions.Database();
 
-        Command check = new("check", "Report gaps, duplicates and malformed bars in the local store.");
-        check.Add(symbol);
-        check.Add(interval);
-        check.Add(from);
-        check.Add(to);
-        check.Add(database);
+        Command check = new("check", "Report gaps, duplicates and malformed bars in the local store.")
+        {
+            symbol,
+            interval,
+            from,
+            to,
+            database
+        };
 
         check.SetAction(async (result, cancellationToken) =>
         {
@@ -101,9 +103,7 @@ internal static class DataCommands
 
             await store.EnsureCreatedAsync(cancellationToken);
 
-            IReadOnlyList<Candle> candles = await store.ReadCandlesAsync(
-                result.GetRequiredValue(symbol), bars,
-                CommonOptions.MonthStart(first), CommonOptions.MonthEnd(last), cancellationToken);
+            IReadOnlyList<Candle> candles = await store.ReadCandlesAsync(result.GetRequiredValue(symbol), bars, CommonOptions.MonthStart(first), CommonOptions.MonthEnd(last), cancellationToken);
 
             IntegrityReport report = SeriesIntegrity.Inspect(candles, bars.Duration);
             Console.WriteLine(report.Describe());

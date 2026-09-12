@@ -24,8 +24,7 @@ public sealed class ReferenceParityTests
         for (int index = 0; index < candles.Count; index++)
         {
             Candle candle = candles[index];
-            bars[index] = new Bar(
-                candle.OpenTime, candle.Open, candle.High, candle.Low, candle.Close, candle.Volume);
+            bars[index] = new(candle.OpenTime, candle.Open, candle.High, candle.Low, candle.Close, candle.Volume);
         }
 
         return bars;

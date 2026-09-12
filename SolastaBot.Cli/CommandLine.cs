@@ -8,10 +8,12 @@ public static class CommandLine
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        RootCommand root = new("SolastaBot: perpetual futures research and trading tools.");
-        root.Add(DataCommands.Build());
-        root.Add(BacktestCommand.Build());
-        root.Add(WalkForwardCommand.Build());
+        RootCommand root = new("SolastaBot: perpetual futures research and trading tools.")
+        {
+            DataCommands.Build(),
+            BacktestCommand.Build(),
+            WalkForwardCommand.Build()
+        };
 
         return root.Parse(args).InvokeAsync();
     }
