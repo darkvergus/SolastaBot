@@ -1,0 +1,13 @@
+{
+  "TradeSizeSol": 0.01,
+  "FeeBasisPoints": 125,
+  "SlippageBasisPoints": 300,
+  "TransactionCostSol": 0.00001,
+  "EntrySetupCostSol": 0.0025,
+  "EntryDelaySeconds": 5,
+  "ExitDelaySeconds": 1,
+  "HoldSeconds": 300,
+  "MaxObservationGapSeconds": 30,
+  "TakeProfitFraction": 1,
+  "StopLossFraction": 0.5
+}

@@ -1,11 +1,20 @@
 # SolastaBot
 
-Research and execution tooling for cryptocurrency perpetual futures, in .NET 10.
+Research tooling for cryptocurrency perpetual futures and Solana token launches, in .NET 10.
 
-**Status: stopped at the strategy gate.** The data pipeline, the backtester and the walk-forward
+**Status: research; neither sleeve has passed its trading gate.** The perp data pipeline, the backtester and the walk-forward
 validator are built, tested and verified against five years of real Binance data. Two strategies
-have been measured against the gate and neither has an edge, so no exchange connector has been
-written and no API key exists.
+have been measured against the gate and neither has passed. Funded trading is not implemented.
+
+The Solana collector records launch price paths. The new `chain replay` command tests entry and
+exit rules on copies of those files, retaining unknown exits and explicit cost assumptions.
+See [docs/chain-replay.md](docs/chain-replay.md) for usage and measurement limits, and
+[docs/chain-gate.md](docs/chain-gate.md) for the earlier research.
+
+The host now runs a live-data Solana paper trader: launch selection, queued entries, simulated
+buy/sell execution, position management, separate allocated cash and restart recovery.
+See [docs/chain-trading.md](docs/chain-trading.md) for startup and controls. Funded-wallet execution
+and a trained prediction model remain unimplemented.
 
 - [docs/m4-gate.md](docs/m4-gate.md) — an hourly EMA cross. Rejected: turnover ate a thin edge.
 - [docs/trend-band-gate.md](docs/trend-band-gate.md) — a four-hourly band entry that never reverses
@@ -17,9 +26,11 @@ written and no API key exists.
 | Project | Purpose | Does I/O |
 | --- | --- | --- |
 | `SolastaBot.Core` | Domain, indicators, strategy, risk, execution policy, backtester, walk-forward | No |
+| `SolastaBot.Chain` | Solana strategy, paper execution, allocation limits and replay | No |
+| `SolastaBot.ChainCollector` | Records token launches and curve observations | Yes |
 | `SolastaBot.Data` | Binance Vision downloads, SQLite store, integrity checks | Yes |
-| `SolastaBot.Exchange` | Exchange adapters | Not yet written |
-| `SolastaBot.Host` | Worker service | Not yet written |
+| `SolastaBot.Exchange` | Public Solana launch/curve feed; perp adapter pending | Yes |
+| `SolastaBot.Host` | Live-data Solana paper trading worker | Yes |
 | `SolastaBot.Cli` | `solasta` command line | Yes |
 | `SolastaBot.Tests` | xUnit v3, grouped by feature | Yes |
 
@@ -50,6 +61,8 @@ dotnet run --project SolastaBot.Cli -c Release -- backtest --strategy trend-band
 # Choose parameters on past data, measure them on the data that came next.
 # --fixed rolls one frozen parameter set through the folds instead of searching a grid.
 dotnet run --project SolastaBot.Cli -c Release -- walk-forward --strategy trend-band --interval 4h --from 2021-01 --to 2025-12 --slippage medium
+
+dotnet run --project SolastaBot.Cli -c Release -- chain replay --data data/chain --settings examples/chain-replay.json --output artifacts/chain-replay.json --compare-delays
 ```
 
 Downloaded data lands in `data/`, which is ignored by git.
@@ -75,6 +88,6 @@ the backtest stop describing live behaviour.
 
 ## What is deliberately not here
 
-No API keys, no exchange connector, no order router. The plan gates those behind a strategy that
-survives walk-forward validation, and the current one does not. Building an execution path for a
-strategy with negative expectancy only makes the losses arrive faster.
+No funded-wallet router or live perp execution connector is implemented. The Solana worker uses
+public market data and a paper router. Funded execution remains behind strategy validation and
+transaction/restart checks.

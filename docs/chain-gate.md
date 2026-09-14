@@ -1,5 +1,9 @@
 # Chain gate: not decided, and the reason is a missing price path
 
+Implementation update, 2026-09-13: forward collection is running, and the .NET snapshot replay is
+available. See [chain-replay.md](chain-replay.md). The historical findings below remain a research
+record; the new command does not automatically pass this gate.
+
 Measured 2026-09-12 against 749,691 pump.fun launches from 2026-05-12 to 2026-06-10, enriched with
 live bonding-curve state on 5,775 of them — a 796-launch random cross-section and **every one of the
 4,987 launches matching the filter**, of which 4,979 resolved.

@@ -8,8 +8,7 @@ using HttpClient httpClient = new();
 
 httpClient.Timeout = TimeSpan.FromSeconds(25d);
 
-AdaptiveRateLimiter rateLimiter =
-    new(options.RateLimit);
+AdaptiveRateLimiter rateLimiter = new(options.RateLimit);
 
 PumpFunClient client = new(httpClient, rateLimiter);
 
@@ -18,10 +17,10 @@ using Collector collector = new(outputDirectory, options, client, rateLimiter);
 using CancellationTokenSource cancellationTokenSource = new();
 
 ConsoleCancelEventHandler cancelHandler = (sender, eventArgs) =>
-    {
-        eventArgs.Cancel = true;
-        cancellationTokenSource.Cancel();
-    };
+{
+    eventArgs.Cancel = true;
+    cancellationTokenSource.Cancel();
+};
 
 Console.CancelKeyPress += cancelHandler;
 

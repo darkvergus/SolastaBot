@@ -5,5 +5,6 @@
     <Project Path="SolastaBot.Host/SolastaBot.Host.csproj" />
     <Project Path="SolastaBot.Cli/SolastaBot.Cli.csproj" />
     <Project Path="SolastaBot.ChainCollector/SolastaBot.ChainCollector.csproj" />
+    <Project Path="SolastaBot.Chain/SolastaBot.Chain.csproj" />
     <Project Path="SolastaBot.Tests/SolastaBot.Tests.csproj" />
 </Solution>

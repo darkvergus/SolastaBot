@@ -1,4 +1,5 @@
 using System.CommandLine;
+using SolastaBot.Cli.Chain;
 
 namespace SolastaBot.Cli;
 
@@ -8,11 +9,12 @@ public static class CommandLine
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        RootCommand root = new("SolastaBot: perpetual futures research and trading tools.")
+        RootCommand root = new("SolastaBot: perpetual futures and Solana launch research tools.")
         {
             DataCommands.Build(),
             BacktestCommand.Build(),
-            WalkForwardCommand.Build()
+            WalkForwardCommand.Build(),
+            ChainReplayCommand.Build()
         };
 
         return root.Parse(args).InvokeAsync();
