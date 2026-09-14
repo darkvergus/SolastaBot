@@ -1,7 +1,7 @@
 using SolastaBot.Chain.Domain;
 using SolastaBot.Chain.Trading;
 
-namespace SolastaBot.Exchange.Chain;
+namespace SolastaBot.Exchange.Chain.Solana.Interfaces;
 
 public interface ILaunchMarketFeed
 {

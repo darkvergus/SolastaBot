@@ -4,7 +4,7 @@ Research tooling for cryptocurrency perpetual futures and Solana token launches,
 
 **Status: research; neither sleeve has passed its trading gate.** The perp data pipeline, the backtester and the walk-forward
 validator are built, tested and verified against five years of real Binance data. Two strategies
-have been measured against the gate and neither has passed. Funded trading is not implemented.
+have been measured against the gate and neither has passed. Mainnet transaction submission remains disabled.
 
 The Solana collector records launch price paths. The new `chain replay` command tests entry and
 exit rules on copies of those files, retaining unknown exits and explicit cost assumptions.
@@ -13,8 +13,10 @@ See [docs/chain-replay.md](docs/chain-replay.md) for usage and measurement limit
 
 The host now runs a live-data Solana paper trader: launch selection, queued entries, simulated
 buy/sell execution, position management, separate allocated cash and restart recovery.
-See [docs/chain-trading.md](docs/chain-trading.md) for startup and controls. Funded-wallet execution
-and a trained prediction model remain unimplemented.
+See [docs/chain-trading.md](docs/chain-trading.md) for paper startup and controls.
+The connected path adds wallet signing, Pump/PumpSwap routing, simulation, devnet submission and
+durable transaction recovery. See [docs/chain-execution.md](docs/chain-execution.md). The funded
+devnet round-trip check awaits test SOL; a trained prediction model remains unimplemented.
 
 - [docs/m4-gate.md](docs/m4-gate.md) — an hourly EMA cross. Rejected: turnover ate a thin edge.
 - [docs/trend-band-gate.md](docs/trend-band-gate.md) — a four-hourly band entry that never reverses
@@ -29,8 +31,8 @@ and a trained prediction model remain unimplemented.
 | `SolastaBot.Chain` | Solana strategy, paper execution, allocation limits and replay | No |
 | `SolastaBot.ChainCollector` | Records token launches and curve observations | Yes |
 | `SolastaBot.Data` | Binance Vision downloads, SQLite store, integrity checks | Yes |
-| `SolastaBot.Exchange` | Public Solana launch/curve feed; perp adapter pending | Yes |
-| `SolastaBot.Host` | Live-data Solana paper trading worker | Yes |
+| `SolastaBot.Exchange` | Solana feed, wallet/RPC, Pump/PumpSwap routes and durable execution; perp adapter pending | Yes |
+| `SolastaBot.Host` | Solana paper, simulation and devnet trading worker | Yes |
 | `SolastaBot.Cli` | `solasta` command line | Yes |
 | `SolastaBot.Tests` | xUnit v3, grouped by feature | Yes |
 
@@ -79,8 +81,8 @@ Downloaded data lands in `data/`, which is ignored by git.
 3. **Risk can only veto or shrink.** `RiskGate` has no path that increases exposure, so a bug in a
    strategy cannot become a bug in position size. A parameter sweep asserts that liquidation always
    sits further from entry than the protective stop.
-4. **The exchange is the source of truth** on startup and reconnect. This one is not yet exercised,
-   since no connector exists.
+4. **The exchange is the source of truth** on startup and reconnect. The Solana connected path
+   reconciles finalized receipts and wallet holdings before permitting another transaction.
 
 Position lifecycle rules that both the backtester and any future live loop must share live in
 `Core/Execution/ExecutionPolicy.cs`, not in the engine. A rule that exists in only one of them makes
@@ -88,6 +90,6 @@ the backtest stop describing live behaviour.
 
 ## What is deliberately not here
 
-No funded-wallet router or live perp execution connector is implemented. The Solana worker uses
-public market data and a paper router. Funded execution remains behind strategy validation and
-transaction/restart checks.
+No mainnet submission or live perp execution connector is enabled. The Solana connected path is
+limited to simulation and devnet; its funded round-trip test still needs test SOL. Real-money
+operation remains behind strategy validation and transaction/restart checks.

@@ -3,7 +3,11 @@
     <PackageReference Include="Binance.Net" Version="13.5.1" />
     <PackageReference Include="CryptoClients.Net" Version="5.7.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Solnet.Rpc" Version="6.1.0" />
     <ProjectReference Include="../SolastaBot.Core/SolastaBot.Core.csproj" />
     <ProjectReference Include="../SolastaBot.Data/SolastaBot.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Chain/Solana/Protocol/Fixtures/*.json" />
   </ItemGroup>
 </Project>

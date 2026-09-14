@@ -3,6 +3,7 @@ using System.Net;
 using System.Text.Json;
 using SolastaBot.Chain.Domain;
 using SolastaBot.Chain.Trading;
+using SolastaBot.Exchange.Chain.Solana.Interfaces;
 
 namespace SolastaBot.Exchange.Chain;
 
@@ -115,7 +116,7 @@ public sealed class PumpLaunchMarketFeed(HttpClient httpClient, TimeProvider tim
     private static decimal? Reserve(JsonElement source, string name)
     {
         decimal? value = Number(source, name);
-        return value is >= 0m && value <= ulong.MaxValue && value == decimal.Truncate(value.Value) ? value : null;
+        return value is >= 0m and <= ulong.MaxValue && value == decimal.Truncate(value.Value) ? value : null;
     }
 
     private static decimal? Number(JsonElement source, string name)

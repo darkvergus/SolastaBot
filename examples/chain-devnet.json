@@ -1,0 +1,40 @@
+{
+  "Mode": "Devnet",
+  "Network": "Devnet",
+  "RpcUrl": "https://api.devnet.solana.com",
+  "WalletPath": "/home/solasta/.config/solastabot/devnet-wallet.json",
+  "FeeReserveLamports": 10000000,
+  "SlippageBasisPoints": 300,
+  "DevnetMints": [],
+  "DiscoverMainnetLaunches": false,
+  "Strategy": {
+    "Mode": "Paper",
+    "Capital": {
+      "TotalPaperCapitalSol": 10,
+      "ChainFraction": 0.2,
+      "PerpFraction": 0.5
+    },
+    "Execution": {
+      "TradeSizeSol": 0.01,
+      "FeeBasisPoints": 125,
+      "SlippageBasisPoints": 300,
+      "TransactionCostSol": 0.00001,
+      "EntrySetupCostSol": 0.0025,
+      "EntryDelaySeconds": 5,
+      "ExitDelaySeconds": 1,
+      "HoldSeconds": 300,
+      "MaxObservationGapSeconds": 30,
+      "TakeProfitFraction": 1,
+      "StopLossFraction": 0.5
+    },
+    "MaxPositions": 3,
+    "MaxPositionFraction": 0.05,
+    "DailyLossFraction": 0.05,
+    "MaxLaunchAgeSeconds": 60,
+    "MinimumVirtualSol": 31.04,
+    "MinimumRealSol": 1,
+    "FeedIntervalSeconds": 20,
+    "PositionPollSeconds": 3,
+    "RequestsPerSecond": 0.8
+  }
+}

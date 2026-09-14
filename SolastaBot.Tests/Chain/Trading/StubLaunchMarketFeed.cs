@@ -1,6 +1,6 @@
 using SolastaBot.Chain.Domain;
 using SolastaBot.Chain.Trading;
-using SolastaBot.Exchange.Chain;
+using SolastaBot.Exchange.Chain.Solana.Interfaces;
 
 namespace SolastaBot.Tests.Chain.Trading;
 

@@ -1,11 +1,12 @@
 using SolastaBot.Chain.Domain;
+using SolastaBot.Chain.Trading.Interfaces;
 
 namespace SolastaBot.Chain.Trading;
 
-public sealed class LaunchTradingEngine(PaperTradingOptions options)
+public sealed class LaunchTradingEngine(PaperTradingOptions options, IOrderQuoteRouter? orderRouter = null)
 {
     private readonly PaperTradingOptions options = Validate(options);
-    private readonly PaperOrderRouter router = new();
+    private readonly IOrderQuoteRouter router = orderRouter ?? new PaperOrderRouter();
 
     public PaperTransition Tick(PaperTradingState state, decimal now, TradingControl control)
     {
@@ -141,10 +142,10 @@ public sealed class LaunchTradingEngine(PaperTradingOptions options)
                 }
                 else
                 {
-                    decimal? netReturn = proceeds / position.CostSol - 1m;
-                    if (position.ExitRequestedAt is null && (!proceeds.HasValue || netReturn <= -options.Execution.StopLossFraction || netReturn >= options.Execution.TakeProfitFraction))
+                    string? exitReason = PositionExitPolicy.Reason(position.CostSol, proceeds, position.EnteredAt, observation.ObservedAt, options, control, next.DailyHalt);
+                    if (position.ExitRequestedAt is null && exitReason is not null)
                     {
-                        string reason = netReturn >= options.Execution.TakeProfitFraction ? "Take profit" : "Stop loss";
+                        string reason = exitReason;
                         marked = marked with { ExitRequestedAt = observation.ObservedAt, ExitReason = reason };
                         events.Add(Event(next, events, observation.ObservedAt, "ExitSignal", position.Mint, reason, observation: observation));
                     }

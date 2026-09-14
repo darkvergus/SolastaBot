@@ -1,3 +1,4 @@
+using SolastaBot.Core.Backtest.Interfaces;
 using SolastaBot.Core.Domain;
 
 namespace SolastaBot.Core.Backtest;

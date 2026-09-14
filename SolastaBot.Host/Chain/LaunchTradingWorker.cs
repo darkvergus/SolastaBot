@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using SolastaBot.Chain.Domain;
 using SolastaBot.Chain.Trading;
 using SolastaBot.Data.Chain.Trading;
-using SolastaBot.Exchange.Chain;
+using SolastaBot.Exchange.Chain.Solana.Interfaces;
 
 namespace SolastaBot.Host.Chain;
 
@@ -96,8 +96,7 @@ public sealed class LaunchTradingWorker(PaperWorkerSettings settings, ILaunchMar
     {
         foreach (TradingEvent tradingEvent in events.Where(tradingEvent => tradingEvent.Kind != "RejectEntry"))
         {
-            logger.LogInformation("{Kind} {Mint}: {Reason}; amount {AmountSol} SOL; event {Sequence}.",
-                tradingEvent.Kind, tradingEvent.Mint, tradingEvent.Reason, tradingEvent.AmountSol, tradingEvent.Sequence);
+            logger.LogInformation("{Kind} {Mint}: {Reason}; amount {AmountSol} SOL; event {Sequence}.", tradingEvent.Kind, tradingEvent.Mint, tradingEvent.Reason, tradingEvent.AmountSol, tradingEvent.Sequence);
         }
     }
 }

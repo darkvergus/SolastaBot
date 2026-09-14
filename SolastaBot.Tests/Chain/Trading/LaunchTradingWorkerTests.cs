@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SolastaBot.Chain.Trading;
 using SolastaBot.Data.Chain.Trading;
-using SolastaBot.Exchange.Chain;
+using SolastaBot.Exchange.Chain.Solana.Interfaces;
 using SolastaBot.Host.Chain;
 
 namespace SolastaBot.Tests.Chain.Trading;

@@ -1,6 +1,6 @@
 using SolastaBot.Core.Domain;
 
-namespace SolastaBot.Core.Backtest;
+namespace SolastaBot.Core.Backtest.Interfaces;
 
 public interface ISlippageModel
 {

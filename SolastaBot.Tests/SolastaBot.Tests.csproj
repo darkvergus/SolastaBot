@@ -5,7 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="xunit.v3" Version="4.0.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
     <PackageReference Include="FacioQuo.Stock.Indicators" Version="3.0.0" />
     <ProjectReference Include="../SolastaBot.Core/SolastaBot.Core.csproj" />
     <ProjectReference Include="../SolastaBot.Data/SolastaBot.Data.csproj" />
@@ -15,5 +15,6 @@
     <ProjectReference Include="../SolastaBot.Host/SolastaBot.Host.csproj" />
     <Using Include="Xunit" />
     <None Update="Fixtures/*.zip" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/Solana/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,5 @@
+using SolastaBot.Core.Backtest.Interfaces;
+
 namespace SolastaBot.Core.Backtest;
 
 public sealed record BacktestOptions

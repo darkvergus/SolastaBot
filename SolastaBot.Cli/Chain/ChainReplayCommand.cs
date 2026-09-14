@@ -115,7 +115,7 @@ internal static class ChainReplayCommand
             }
         });
 
-        return new("chain", "Solana launch research and paper trading.") { replay, ChainPaperCommand.Build() };
+        return new("chain", "Solana launch research and trading.") { replay, ChainPaperCommand.Build(), ChainConnectedCommand.Build() };
     }
 
     private static string Percent(decimal? value) => value.HasValue ? value.Value.ToString("P2", CultureInfo.InvariantCulture) : "unknown";

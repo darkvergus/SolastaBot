@@ -1,5 +1,8 @@
 # Running the launch trading loop
 
+This page describes Paper mode. For signed transactions, devnet operation and migration routing,
+see [Solana execution](chain-execution.md).
+
 The worker now follows the operational sequence: discover a launch, evaluate an entry rule, queue
 a buy, obtain a later price, buy, monitor the open position, and sell when its exit rule triggers.
 It reads the public live feed and currently sends orders to a paper router. The paper router
