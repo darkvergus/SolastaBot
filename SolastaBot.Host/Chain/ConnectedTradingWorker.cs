@@ -6,7 +6,6 @@ using SolastaBot.Exchange.Chain.Solana;
 using SolastaBot.Exchange.Chain.Solana.Protocol;
 using Solnet.Rpc.Builders;
 using Solnet.Rpc.Models;
-using Solnet.Wallet;
 using System.Text.Json;
 
 namespace SolastaBot.Host.Chain;
@@ -121,7 +120,7 @@ public static class ConnectedTradingWorker
                 RouteSnapshot route = await routes.ReadAsync(position.Mint, runtime.Address, cancellationToken);
                 ulong minimumOutput = route.SellOutput(position.Tokens, runtime.Options.SlippageBasisPoints);
                 JsonElement block = await runtime.Rpc.CallAsync("getLatestBlockhash", [new { commitment = "confirmed" }], cancellationToken);
-                TransactionBuilder message = new TransactionBuilder().SetFeePayer(new PublicKey(runtime.Address)).SetRecentBlockHash(block.GetProperty("value").GetProperty("blockhash").GetString()!);
+                TransactionBuilder message = new TransactionBuilder().SetFeePayer(new(runtime.Address)).SetRecentBlockHash(block.GetProperty("value").GetProperty("blockhash").GetString()!);
                 foreach (TransactionInstruction instruction in routes.Instructions(route, new("quote", position.Mint, OrderSide.Sell, position.Tokens, now, "Exit quote"), runtime.Address, minimumOutput))
                 {
                     message.AddInstruction(instruction);

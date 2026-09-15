@@ -10,9 +10,9 @@ public sealed class SolanaTransportTests
     [Fact]
     public async Task MainnetGenesisPreventsSendEvenWhenDevnetWasConfigured()
     {
-        using RpcTestHandler handler = new((method, parameters) => "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp");
+        using RpcTestHandler handler = new((_, _) => "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp");
         using HttpClient client = new(handler);
-        SolanaRpc rpc = new(client, new Uri("https://rpc.test"), true);
+        SolanaRpc rpc = new(client, new("https://rpc.test"), true);
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.SendAsync("signed", 1, () => true, TestContext.Current.CancellationToken));
         Assert.Equal(new[] { "getGenesisHash" }, handler.Methods);
     }
@@ -21,9 +21,9 @@ public sealed class SolanaTransportTests
     public async Task HaltDuringNetworkCheckPreventsTheFollowingHttpSubmission()
     {
         bool allowed = true;
-        using RpcTestHandler handler = new((method, parameters) => { allowed = false; return SolanaRpc.DevnetGenesis; });
+        using RpcTestHandler handler = new((_, _) => { allowed = false; return SolanaRpc.DevnetGenesis; });
         using HttpClient client = new(handler);
-        SolanaRpc rpc = new(client, new Uri("https://rpc.test"), true);
+        SolanaRpc rpc = new(client, new("https://rpc.test"), true);
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.SendAsync("signed", 1, () => allowed, TestContext.Current.CancellationToken));
         Assert.DoesNotContain("sendTransaction", handler.Methods);
     }
@@ -31,9 +31,9 @@ public sealed class SolanaTransportTests
     [Fact]
     public async Task SimulateTransportAndGenericRpcCannotBypassSendGuard()
     {
-        using RpcTestHandler handler = new((method, parameters) => SolanaRpc.DevnetGenesis);
+        using RpcTestHandler handler = new((_, _) => SolanaRpc.DevnetGenesis);
         using HttpClient client = new(handler);
-        SolanaRpc rpc = new(client, new Uri("https://rpc.test"), false);
+        SolanaRpc rpc = new(client, new("https://rpc.test"), false);
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.SendAsync("signed", 1, () => true, TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.CallAsync("sendTransaction", ["signed"], TestContext.Current.CancellationToken));
         Assert.Empty(handler.Methods);

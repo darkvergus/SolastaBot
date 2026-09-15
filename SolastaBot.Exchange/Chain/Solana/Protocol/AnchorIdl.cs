@@ -13,8 +13,7 @@ public sealed class AnchorIdl
 
     public AnchorIdl(string name)
     {
-        using Stream stream = typeof(AnchorIdl).Assembly.GetManifestResourceStream($"SolastaBot.Exchange.Chain.Solana.Protocol.Fixtures.{name}.json")
-            ?? throw new InvalidDataException("Missing pinned IDL.");
+        using Stream stream = typeof(AnchorIdl).Assembly.GetManifestResourceStream($"SolastaBot.Exchange.Chain.Solana.Protocol.Fixtures.{name}.json") ?? throw new InvalidDataException("Missing pinned IDL.");
         using JsonDocument document = JsonDocument.Parse(stream);
         root = document.RootElement.Clone();
     }
@@ -27,7 +26,7 @@ public sealed class AnchorIdl
         }
 
         JsonElement definition = root.GetProperty("accounts").EnumerateArray().Single(item => item.GetProperty("name").GetString() == name);
-        byte[] discriminator = definition.GetProperty("discriminator").EnumerateArray().Select(value => value.GetByte()).ToArray();
+        byte[] discriminator = [.. definition.GetProperty("discriminator").EnumerateArray().Select(value => value.GetByte())];
         if (account.Data.Length < 8 || !account.Data.AsSpan(0, 8).SequenceEqual(discriminator))
         {
             throw new InvalidDataException($"Invalid {name} discriminator.");
@@ -35,13 +34,8 @@ public sealed class AnchorIdl
 
         int offset = 8;
         Dictionary<string, object> fields = [];
-        foreach (JsonElement field in Definition(name).GetProperty("fields").EnumerateArray())
+        foreach (JsonElement field in Definition(name).GetProperty("fields").EnumerateArray().TakeWhile(_ => offset != account.Data.Length))
         {
-            if (offset == account.Data.Length)
-            {
-                break;
-            }
-
             fields.Add(field.GetProperty("name").GetString()!, Read(field.GetProperty("type"), account.Data, ref offset));
         }
         return fields;
@@ -69,7 +63,7 @@ public sealed class AnchorIdl
             keys.AddRange(remaining);
         }
 
-        byte[] discriminator = definition.GetProperty("discriminator").EnumerateArray().Select(value => value.GetByte()).ToArray();
+        byte[] discriminator = [.. definition.GetProperty("discriminator").EnumerateArray().Select(value => value.GetByte())];
         return new() { ProgramId = SolanaPrograms.Key(Program), Keys = keys, Data = [.. discriminator, .. arguments] };
     }
 
@@ -92,17 +86,13 @@ public sealed class AnchorIdl
 
             ReadOnlySpan<byte> bytes = data.AsSpan(offset, count);
             offset += count;
-            if (primitive == "pubkey")
-            {
-                return new PublicKey(bytes).Key;
-            }
 
-            if (primitive == "bool")
+            return primitive switch
             {
-                return bytes[0] <= 1 ? bytes[0] == 1 : throw new InvalidDataException("Invalid boolean.");
-            }
-
-            return new BigInteger(bytes, !primitive.StartsWith('i'), false);
+                "pubkey" => new PublicKey(bytes).Key,
+                "bool" => bytes[0] <= 1 ? bytes[0] == 1 : throw new InvalidDataException("Invalid boolean."),
+                _ => new BigInteger(bytes, !primitive.StartsWith('i'))
+            };
         }
         if (type.TryGetProperty("defined", out JsonElement defined))
         {
@@ -114,9 +104,9 @@ public sealed class AnchorIdl
 
             return values;
         }
-        JsonElement element;
+
         int length;
-        if (type.TryGetProperty("vec", out element))
+        if (type.TryGetProperty("vec", out JsonElement element))
         {
             if (offset + 4 > data.Length)
             {

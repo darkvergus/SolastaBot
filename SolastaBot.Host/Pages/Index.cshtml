@@ -1,0 +1,72 @@
+@page
+@model IndexModel
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Solasta · Portfolio</title>
+    <link rel="stylesheet" href="~/dashboard.css" />
+    <script src="~/dashboard.js" defer></script>
+</head>
+<body>
+<main>
+    <header><div><h1>Solasta</h1><p>One portfolio · multiple strategies</p></div><strong class="badge">PAPER · simulated money</strong></header>
+    <p>Strategies below are research candidates. Existing Binance baselines failed historical validation. Live trading is disabled.</p>
+    @if (Model.Notice is not null) { <p role="status" class="notice">@Model.Notice</p> }
+    <nav>
+        <form method="post" asp-page-handler="Control"><button name="command" value="halt">Pause all entries</button><button name="command" value="resume">Resume entries</button><button name="command" value="flatten" class="danger">Close all positions</button></form>
+        <span>@(Model.Portfolio.Halted ? "Global entry pause active" : "Global entries enabled") · revision @Model.Portfolio.Revision</span>
+    </nav>
+    <section><h2>Managed accounts</h2><div class="accounts">
+    @foreach (string asset in new[] { "SOL", "USDT" })
+    {
+        List<StrategyAccount> accounts = [.. Model.Portfolio.Strategies.Values.Where(account => account.Settings.Asset == asset && !account.Settings.Trial)];
+        <article><h3>@asset</h3><dl><dt>Equity</dt><dd>@accounts.Sum(account => account.Equity).ToString("0.########")</dd><dt>Available cash</dt><dd>@accounts.Sum(account => account.Available).ToString("0.########")</dd><dt>Realized P/L</dt><dd>@accounts.Sum(account => account.RealizedPnl).ToString("0.########")</dd><dt>Reserve</dt><dd>@Model.Portfolio.Reserves.GetValueOrDefault(asset).ToString("0.########")</dd></dl></article>
+    }
+    </div></section>
+    <section><h2>Strategies</h2>
+    @foreach (StrategyAccount account in Model.Portfolio.Strategies.Values)
+    {
+        StrategySettings settings = account.Settings;
+        <article>
+            <h3>@settings.Id <small>@settings.Kind · v@settings.Version · @(settings.Trial ? "Independent paper trial" : "Managed paper allocation")</small></h3>
+            <p>@(account.TrialCompleted ? "Completed paper trial" : account.DailyHalt ? "Daily risk halt" : account.Paused ? "Paused" : "Running") · @account.LastDecision</p>
+            <dl><dt>Equity (@settings.Asset)</dt><dd>@account.Equity.ToString("0.########")</dd><dt>Available / reserved</dt><dd>@account.Available.ToString("0.########") / @account.Reserved.ToString("0.########")</dd><dt>Realized / unrealized P/L</dt><dd>@account.RealizedPnl.ToString("0.########") / @account.Positions.Sum(position => position.Mark - position.Cost).ToString("0.########")</dd><dt>Closed trades / drawdown</dt><dd>@account.ClosedTrades / @account.MaxDrawdown.ToString("P2")</dd><dt>Fees / funding</dt><dd>@account.TotalFees.ToString("0.########") / @account.TotalFunding.ToString("0.########")</dd></dl>
+            <form method="post" asp-page-handler="Control"><input type="hidden" name="strategy" value="@settings.Id" /><button name="command" value="pause">Pause entries</button><button name="command" value="resume">Resume</button><button name="command" value="flatten">Close positions</button></form>
+            @if (account.Positions.Count > 0)
+            {
+                <div class="scroll"><table><thead><tr><th>Market</th><th>Quantity</th><th>Cost</th><th>Mark</th><th>Quote age</th><th>Exit</th></tr></thead><tbody>
+                @foreach (PortfolioPosition position in account.Positions)
+                {
+                    <tr><td>@position.Market</td><td>@position.Quantity</td><td>@position.Cost.ToString("0.########")</td><td>@position.Mark.ToString("0.########")</td><td>@Math.Max(0m, Model.Portfolio.Now - position.MarkedAt).ToString("0") s</td><td>@(position.ExitRequestedAt.HasValue ? position.ExitReason : position.PartialTaken ? "Trailing remainder" : "Monitoring")</td></tr>
+                }
+                </tbody></table></div>
+            }
+            @if (!settings.Trial)
+            {
+                <details><summary>Profit sharing</summary>
+                    <p>Applies to newly settled profit above recovered losses. Cross-currency shares wait for a recorded conversion.</p>
+                    <form method="post" asp-page-handler="Split" class="fields"><input type="hidden" name="strategy" value="@settings.Id" /><label>Retain %<input name="retain" type="number" min="0" max="100" step="0.01" value="@(account.ProfitSplit.Count == 0 ? 100m : account.ProfitSplit.GetValueOrDefault("retain") * 100m)" /></label><label>Reserve %<input name="reserve" type="number" min="0" max="100" step="0.01" value="@(account.ProfitSplit.GetValueOrDefault("reserve") * 100m)" /></label>@foreach (StrategyAccount target in Model.Portfolio.Strategies.Values.Where(target => !target.Settings.Trial && target.Settings.Id != settings.Id)) { <label>@target.Settings.Id (@target.Settings.Asset) %<input name="allocations[@target.Settings.Id]" type="number" min="0" max="100" step="0.01" value="@(account.ProfitSplit.GetValueOrDefault(target.Settings.Id) * 100m)" /></label> }<button>Save split</button></form>
+                    <p>Current: @(account.ProfitSplit.Count == 0 ? "100% retained" : string.Join(", ", account.ProfitSplit.Select(share => $"{share.Key}: {share.Value:P0}")))</p>
+                </details>
+            }
+            @if (settings.Asset == "SOL")
+            {
+                <details><summary>Strategy rules</summary><p>Changes create a new version and require no open positions or pending entries.</p><form method="post" asp-page-handler="Settings" class="fields"><input type="hidden" name="strategy" value="@settings.Id" /><label>Profit trigger %<input name="takeProfit" type="number" step="0.1" value="@(settings.TakeProfitFraction * 100m)" /></label><label>Sell portion %<input name="partial" type="number" step="0.1" value="@(settings.PartialFraction * 100m)" /></label><label>Trailing drop %<input name="trail" type="number" step="0.1" value="@(settings.TrailFraction * 100m)" /></label><label>Loss limit %<input name="stop" type="number" step="0.1" value="@(settings.StopFraction * 100m)" /></label><label>Maximum hold seconds<input name="holdSeconds" type="number" value="@settings.HoldSeconds" /></label><label>Trade SOL<input name="tradeSize" type="number" step="0.000001" value="@settings.TradeSizeSol" /></label><button>Save new version</button></form></details>
+            }
+            @if (settings.Asset == "USDT")
+            {
+                <details><summary>Strategy rules</summary><form method="post" asp-page-handler="PerpetualSettings" class="fields"><input type="hidden" name="strategy" value="@settings.Id" /><label>Fast EMA<input name="fast" type="number" value="@settings.Trend.FastPeriod" /></label><label>Slow EMA<input name="slow" type="number" value="@settings.Trend.SlowPeriod" /></label><label>Entry band bps<input name="band" type="number" step="0.1" value="@settings.Trend.EntryBandBasisPoints" /></label><label>ADX floor<input name="adx" type="number" step="0.1" value="@settings.Trend.MinimumTrendStrength" /></label><label>ATR stop multiplier<input name="atrStop" type="number" step="0.1" value="@settings.Trend.StopAtrMultiple" /></label><button>Save new version</button></form></details>
+            }
+        </article>
+    }
+    </section>
+    <section><h2>Move an available budget</h2><form method="post" asp-page-handler="Transfer" class="fields"><label>From<select name="source">@foreach (StrategyAccount account in Model.Portfolio.Strategies.Values.Where(account => !account.Settings.Trial)) { <option value="@account.Settings.Id">@account.Settings.Id (@account.Settings.Asset)</option> }</select></label><label>To<select name="target">@foreach (StrategyAccount account in Model.Portfolio.Strategies.Values.Where(account => !account.Settings.Trial)) { <option value="@account.Settings.Id">@account.Settings.Id (@account.Settings.Asset)</option> }</select></label><label>Amount<input type="number" name="amount" step="0.000001" min="0" required /></label><button>Transfer budget</button></form></section>
+    <section><h2>Pending cross-currency allocations</h2><p>These balances cannot be spent by their destination strategy. Record a paper conversion using the net amount received after costs. No currency is exchanged externally.</p>@foreach (KeyValuePair<string, decimal> allocation in Model.Portfolio.PendingAllocations.Where(allocation => allocation.Value > 0m)) { <p>@allocation.Key — @allocation.Value</p><form method="post" asp-page-handler="Conversion" class="fields"><input type="hidden" name="allocation" value="@allocation.Key" /><label>Source amount<input name="sourceAmount" type="number" step="0.000001" min="0" max="@allocation.Value" required /></label><label>Net destination amount<input name="receivedAmount" type="number" step="0.000001" min="0" required /></label><label>Unique reference<input name="reference" required maxlength="100" /></label><button>Record paper conversion</button></form> }</section>
+    <section><h2>Research</h2><p>Daily: 28 training days followed by 7 test days. Trials have independent virtual funds. Results cannot activate real trading.</p>@foreach (ResearchResult result in Model.Portfolio.Research.TakeLast(12).Reverse()) { <article><h3>@result.Strategy · @result.CreatedAt.ToString("u")</h3><p>@result.Verdict</p><p>Training: @result.TrainingPnl.ToString("0.########") · test: @result.TestPnl.ToString("0.########") @result.Candidate.Asset · current-version test: @result.BaselineTestPnl.ToString("0.########") · @result.TestTrades closed trades</p><p>Test fees: @result.TestFees.ToString("0.########") · funding: @result.TestFunding.ToString("0.########") · drawdown: @result.TestDrawdown.ToString("P2")</p><p>@result.CoveredDays / 35 days with observations · @result.Observations usable observations · @result.FeedErrors feed errors</p></article> }</section>
+    <section><h2>Collection and feed health</h2><p>@Model.Portfolio.Markets.Count tracked tokens. Missing observations are not assumed to be fills.</p><dl>@foreach (KeyValuePair<string, string> health in Model.Portfolio.Health.Where(health => health.Key != "solana-cursor")) { <dt>@health.Key</dt><dd>@health.Value</dd> }</dl></section>
+    <section><h2>Recent activity</h2><div class="scroll"><table><thead><tr><th>Strategy</th><th>Event</th><th>Market</th><th>Amount</th><th>Reason</th></tr></thead><tbody>@foreach (LedgerEntry entry in Model.Portfolio.RecentEvents.TakeLast(30).Reverse()) { <tr><td>@entry.Strategy</td><td>@entry.Kind</td><td>@entry.Market</td><td>@entry.Amount.ToString("0.########")</td><td>@entry.Reason</td></tr> }</tbody></table></div></section>
+</main>
+</body>
+</html>

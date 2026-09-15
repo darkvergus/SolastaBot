@@ -2,8 +2,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Serilog;
 using SolastaBot.Chain.Trading;
 using SolastaBot.Exchange.Chain;
@@ -17,10 +15,15 @@ public static class Program
     public static async Task<int> Main(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
+        if (args.Length > 0 && args[0] == "serve")
+        {
+            return await Dashboard.UnifiedApplication.RunAsync(args[1..]);
+        }
         if (args.Length == 0 || args is ["--help"])
         {
             Console.WriteLine("Solasta trading worker. Usage: --settings <json-file> --state <directory>");
             Console.WriteLine("Modes: Paper, Simulate, Devnet. Mainnet broadcasting is disabled.");
+            Console.WriteLine("Unified dashboard: serve --settings <json-file> --state <directory>");
             return args.Length == 0 ? 1 : 0;
         }
 
@@ -50,7 +53,7 @@ public static class Program
             if (document.RootElement.TryGetProperty("Mode", out JsonElement mode) && mode.GetString() is "Simulate" or "Devnet")
             {
                 using CancellationTokenSource shutdown = new();
-                ConsoleCancelEventHandler handler = (sender, eventArgs) => { eventArgs.Cancel = true; shutdown.Cancel(); };
+                ConsoleCancelEventHandler handler = (_, eventArgs) => { eventArgs.Cancel = true; shutdown.Cancel(); };
                 Console.CancelKeyPress += handler;
                 using System.Runtime.InteropServices.PosixSignalRegistration? terminate = OperatingSystem.IsWindows() ? null :
                     System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGTERM, context => { context.Cancel = true; shutdown.Cancel(); });

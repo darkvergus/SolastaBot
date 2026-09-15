@@ -57,6 +57,20 @@ public sealed class PumpLaunchMarketFeed(HttpClient httpClient, TimeProvider tim
         return Curve(document.RootElement, mint, Now());
     }
 
+    public async Task<LaunchCandidate> ReadLaunchAsync(string mint, CancellationToken cancellationToken)
+    {
+        using JsonDocument document = await RequestAsync($"coins/{Uri.EscapeDataString(mint)}", cancellationToken);
+        JsonElement coin = document.RootElement;
+        if (coin.ValueKind != JsonValueKind.Object || Text(coin, "mint") != mint)
+        {
+            throw new InvalidDataException("Launch response mint mismatch.");
+        }
+
+        decimal? decimals = Number(coin, "quote_decimals");
+        return new(mint, (Number(coin, "created_timestamp") ?? 0m) / 1000m, Text(coin, "quote_mint"), decimals is >= 0m and <= 18m && decimals == decimal.Truncate(decimals.Value) ? (int)decimals.Value : null,
+            Text(coin, "protocol"), !string.IsNullOrWhiteSpace(Text(coin, "telegram")), !string.IsNullOrWhiteSpace(Text(coin, "twitter")), Curve(coin, mint, Now()));
+    }
+
     public void Dispose()
     {
         requestGate.Dispose();
@@ -84,7 +98,7 @@ public sealed class PumpLaunchMarketFeed(HttpClient httpClient, TimeProvider tim
             {
                 currentRate = Math.Max(0.1m, currentRate / 2m);
                 TimeSpan retry = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(30);
-                if (response.Headers.RetryAfter?.Date is DateTimeOffset retryAt)
+                if (response.Headers.RetryAfter?.Date is { } retryAt)
                 {
                     retry = retryAt - timeProvider.GetUtcNow();
                 }

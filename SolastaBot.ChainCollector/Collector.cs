@@ -66,7 +66,7 @@ public sealed class Collector : IDisposable
 
         await Task.WhenAny(feedTask, pollTask, reportTask);
 
-        linkedCancellation.Cancel();
+        await linkedCancellation.CancelAsync();
 
         await Task.WhenAll(feedTask, pollTask, reportTask);
     }
@@ -95,7 +95,7 @@ public sealed class Collector : IDisposable
             {
                 Increment("feed");
 
-                if (result.Data is JsonElement { ValueKind: JsonValueKind.Array } data)
+                if (result.Data is { ValueKind: JsonValueKind.Array } data)
                 {
                     foreach (JsonElement coin in data.EnumerateArray())
                     {
@@ -356,7 +356,7 @@ public sealed class Collector : IDisposable
             return;
         }
 
-        if (result.Data is not JsonElement { ValueKind: JsonValueKind.Object } data)
+        if (result.Data is not { ValueKind: JsonValueKind.Object } data)
         {
             Increment("poll_errors");
 
@@ -421,7 +421,7 @@ public sealed class Collector : IDisposable
 
     private void Increment(string statisticName)
     {
-        statistics.AddOrUpdate(statisticName, 1L, static (statisticKey, currentValue) => currentValue + 1L);
+        statistics.AddOrUpdate(statisticName, 1L, static (_, currentValue) => currentValue + 1L);
     }
 
     private long GetStatistic(string statisticName) => statistics.TryGetValue(statisticName, out long value) ? value : 0L;

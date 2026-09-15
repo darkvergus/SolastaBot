@@ -154,9 +154,14 @@ public sealed class PumpRoutes(ISolanaRpc rpc)
                 instructions.Add(TokenInstructions.Sync(wrapped));
             }
         }
-        List<AccountMeta> remaining = [TokenInstructions.Read(SolanaPrograms.Pda(migrated ? SolanaPrograms.Amm : SolanaPrograms.Pump,
-            SolanaPrograms.Seed(migrated ? "pool-v2" : "bonding-curve-v2"), SolanaPrograms.Key(intent.Mint)))];
-        remaining.Add(migrated ? TokenInstructions.Read(route.BuybackRecipient) : TokenInstructions.Write(route.BuybackRecipient));
+        List<AccountMeta> remaining =
+        [
+            TokenInstructions.Read(SolanaPrograms.Pda(migrated ? SolanaPrograms.Amm : SolanaPrograms.Pump,
+                SolanaPrograms.Seed(migrated ? "pool-v2" : "bonding-curve-v2"), SolanaPrograms.Key(intent.Mint))),
+
+            migrated ? TokenInstructions.Read(route.BuybackRecipient) : TokenInstructions.Write(route.BuybackRecipient)
+        ];
+
         if (migrated)
         {
             remaining.Add(TokenInstructions.Write(SolanaPrograms.Ata(route.BuybackRecipient, SolanaPrograms.WrappedSol, SolanaPrograms.Token)));

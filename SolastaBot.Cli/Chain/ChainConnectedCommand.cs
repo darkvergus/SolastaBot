@@ -108,7 +108,11 @@ internal static class ChainConnectedCommand
                     Console.WriteLine($"{runtime.Options.Mode} {runtime.Options.Network}; wallet={runtime.Address}; session={runtime.DirectoryPath}");
                     if (action == "acknowledge-fault")
                     {
-                        if (!result.GetValue(confirm)) throw new ArgumentException("Review the recorded fault, then pass --confirm to acknowledge it.");
+                        if (!result.GetValue(confirm))
+                        {
+                            throw new ArgumentException("Review the recorded fault, then pass --confirm to acknowledge it.");
+                        }
+
                         await runtime.Session.AcknowledgeFaultAsync(cancellationToken);
                         Console.WriteLine("Fault acknowledged; wallet balances and holdings were verified without adjustment.");
                         return 0;

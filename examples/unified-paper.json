@@ -1,0 +1,14 @@
+{
+  "Mode": "Paper",
+  "ListenUrl": "http://127.0.0.1:5080",
+  "EnableNetwork": true,
+  "TrackingCapacity": 4,
+  "ControlProbability": 0.001,
+  "ResearchHourUtc": 3,
+  "Strategies": [
+    { "Id": "launch", "Kind": "solana-launch", "InitialCapital": 5 },
+    { "Id": "continuation", "Kind": "solana-continuation", "InitialCapital": 5, "StopFraction": 0.2, "HoldSeconds": 3600 },
+    { "Id": "ema", "Kind": "binance-ema", "InitialCapital": 5000, "Interval": "1h", "FeeBasisPoints": 5, "SlippageBasisPoints": 15 },
+    { "Id": "trend", "Kind": "binance-trend", "InitialCapital": 5000, "Interval": "4h", "FeeBasisPoints": 5, "SlippageBasisPoints": 15 }
+  ]
+}

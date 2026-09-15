@@ -27,7 +27,11 @@ internal sealed class StubConnectedRouter : IConnectedOrderRouter
 
     public Task SubmitAsync(ExecutionOrder order, Func<bool> authorized, CancellationToken cancellationToken)
     {
-        if (!authorized()) throw new InvalidOperationException("Control refused submission.");
+        if (!authorized())
+        {
+            throw new InvalidOperationException("Control refused submission.");
+        }
+
         Submissions.Add(order.Transaction);
         return ThrowOnSubmit ? throw new HttpRequestException("Timeout after node accepted transaction") : Task.CompletedTask;
     }

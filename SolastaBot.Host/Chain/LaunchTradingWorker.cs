@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using SolastaBot.Chain.Domain;
 using SolastaBot.Chain.Trading;
 using SolastaBot.Data.Chain.Trading;

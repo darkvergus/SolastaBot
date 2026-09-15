@@ -109,7 +109,7 @@ public sealed class CollectorDatasetReader
         await using FileStream stream = new(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, FileOptions.Asynchronous | FileOptions.SequentialScan);
         using StreamReader reader = new(stream, new UTF8Encoding(false, true), true, 65536, true);
         int records = 0;
-        while (await reader.ReadLineAsync(cancellationToken) is string line)
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
         {
             records++;
             try

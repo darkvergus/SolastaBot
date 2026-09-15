@@ -27,9 +27,9 @@ public sealed class FileWalletSigner : ITransactionSigner
                 throw new InvalidDataException("Expected a Solana 64-byte keypair JSON array.");
             }
 
-            secret = numbers.Select(number => (byte)number).ToArray();
+            secret = [.. numbers.Select(number => (byte)number)];
             Array.Clear(numbers);
-            account = new(secret.ToArray(), secret[32..]);
+            account = new([.. secret], secret[32..]);
             byte[] challenge = RandomNumberGenerator.GetBytes(32);
             if (!account.PublicKey.Verify(challenge, account.Sign(challenge)))
             {

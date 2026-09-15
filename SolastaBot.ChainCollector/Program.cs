@@ -16,7 +16,7 @@ using Collector collector = new(outputDirectory, options, client, rateLimiter);
 
 using CancellationTokenSource cancellationTokenSource = new();
 
-ConsoleCancelEventHandler cancelHandler = (sender, eventArgs) =>
+ConsoleCancelEventHandler cancelHandler = (_, eventArgs) =>
 {
     eventArgs.Cancel = true;
     cancellationTokenSource.Cancel();

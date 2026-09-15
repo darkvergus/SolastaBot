@@ -2,6 +2,11 @@
 
 Research tooling for cryptocurrency perpetual futures and Solana token launches, in .NET 10.
 
+The unified paper service runs collection, multiple Solana/Binance strategies, portfolio accounting,
+daily research and a browser dashboard in one process. Start it with
+`dotnet run --project SolastaBot.Host -c Release -- serve --settings examples/unified-paper.json --state data/unified`.
+See [docs/unified-service.md](docs/unified-service.md) for controls, limitations and Ubuntu packaging.
+
 **Status: research; neither sleeve has passed its trading gate.** The perp data pipeline, the backtester and the walk-forward
 validator are built, tested and verified against five years of real Binance data. Two strategies
 have been measured against the gate and neither has passed. Mainnet transaction submission remains disabled.
@@ -32,7 +37,7 @@ devnet round-trip check awaits test SOL; a trained prediction model remains unim
 | `SolastaBot.ChainCollector` | Records token launches and curve observations | Yes |
 | `SolastaBot.Data` | Binance Vision downloads, SQLite store, integrity checks | Yes |
 | `SolastaBot.Exchange` | Solana feed, wallet/RPC, Pump/PumpSwap routes and durable execution; perp adapter pending | Yes |
-| `SolastaBot.Host` | Solana paper, simulation and devnet trading worker | Yes |
+| `SolastaBot.Host` | Unified paper portfolio/dashboard/research, market workers, legacy Solana simulation and devnet worker | Yes |
 | `SolastaBot.Cli` | `solasta` command line | Yes |
 | `SolastaBot.Tests` | xUnit v3, grouped by feature | Yes |
 

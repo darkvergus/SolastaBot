@@ -257,11 +257,7 @@ public sealed class RiskGateTests
                         {
                             foreach (PositionSide side in sides)
                             {
-                                RiskVerdict verdict = gate.Evaluate(
-                                    new(side, stop, DecisionReason.EnterLong),
-                                    Snapshot(price),
-                                    new(equity, 0m),
-                                    Ledger(equity: equity));
+                                RiskVerdict verdict = gate.Evaluate(new(side, stop, DecisionReason.EnterLong), Snapshot(price), new(equity, 0m), Ledger(equity: equity));
 
                                 if (!verdict.WantsPosition)
                                 {

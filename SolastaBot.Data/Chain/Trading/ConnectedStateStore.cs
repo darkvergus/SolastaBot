@@ -44,7 +44,7 @@ public sealed class ConnectedStateStore(string path)
         }
 
         command.CommandText = "INSERT INTO ConnectedEvents VALUES($next,$at,$kind,$event);";
-        command.Parameters.AddWithValue("$event", JsonSerializer.Serialize(new { next.WalletLamports, next.ReconciliationError, next.Positions, Order = next.Orders.LastOrDefault() is ExecutionOrder last ? last with { Transaction = string.Empty } : null }));
+        command.Parameters.AddWithValue("$event", JsonSerializer.Serialize(new { next.WalletLamports, next.ReconciliationError, next.Positions, Order = next.Orders.LastOrDefault() is { } last ? last with { Transaction = string.Empty } : null }));
         command.Parameters.AddWithValue("$at", DateTimeOffset.UtcNow.ToString("O"));
         command.Parameters.AddWithValue("$kind", kind);
         await command.ExecuteNonQueryAsync(cancellationToken);

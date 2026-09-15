@@ -5,7 +5,6 @@ using SolastaBot.Exchange.Chain.Solana.Interfaces;
 using SolastaBot.Exchange.Chain.Solana.Protocol;
 using Solnet.Rpc.Models;
 using Solnet.Rpc.Builders;
-using Solnet.Wallet;
 using Solnet.Wallet.Utilities;
 
 namespace SolastaBot.Exchange.Chain.Solana;
@@ -38,7 +37,7 @@ public sealed class SolanaOrderRouter(ISolanaRpc rpc, ITransactionSigner signer,
         byte[] bytes;
         if (options.Mode == "Simulate")
         {
-            TransactionBuilder builder = new TransactionBuilder().SetFeePayer(new PublicKey(signer.Address)).SetRecentBlockHash(blockhash);
+            TransactionBuilder builder = new TransactionBuilder().SetFeePayer(new(signer.Address)).SetRecentBlockHash(blockhash);
             foreach (TransactionInstruction instruction in instructions)
             {
                 builder.AddInstruction(instruction);
@@ -63,7 +62,7 @@ public sealed class SolanaOrderRouter(ISolanaRpc rpc, ITransactionSigner signer,
         ulong reserve = checked(options.FeeReserveLamports + (intent.Side == OrderSide.Buy ? intent.Amount : 0));
         return new(intent, OrderStatus.Signed, Convert.ToBase64String(bytes), Encoders.Base58.EncodeData(bytes, 1, 64), value.GetProperty("lastValidBlockHeight").GetUInt64(),
             reserve, minimum, route.Route, route.Slot, Quote: new((decimal)route.BaseReserve, (decimal)route.QuoteReserve, (decimal)route.RealBaseReserve,
-                (decimal)route.RealQuoteReserve, route.FeeRates.Select(rate => (decimal)rate).ToArray(), route.Accounts, "81091419e4457566469d4e2a27f64ed84d42419c"));
+                (decimal)route.RealQuoteReserve, [.. route.FeeRates.Select(rate => (decimal)rate)], route.Accounts, "81091419e4457566469d4e2a27f64ed84d42419c"));
     }
 
     public async Task<string> SimulateAsync(ExecutionOrder order, CancellationToken cancellationToken)
